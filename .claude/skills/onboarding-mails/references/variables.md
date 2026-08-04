@@ -39,14 +39,28 @@ el panel).
 | `{{total_movimientos}}` | `movimientos_totales` | `clay_empresas_avance` → `total_movements` |
 | `{{movimientos_tarjeta}}` | `movimientos_tarjeta` | `clay_empresas_avance` → `creditcard` (aproximado) |
 | `{{movimientos_sin_match}}` | `movimientos_sin_match` | `clay_empresas_avance` → `unmatched_movements` |
-| `{{pct_cassius}}` | `pct_conciliacion_cassius_auto` | `clay_empresas_avance` → `matches_by_user` (Cassius) |
-| `{{pct_usuario}}` | `pct_conciliacion_usuario` | `clay_empresas_avance` → `matches_by_user` (humano) |
+| `{{pct_match}}` | Calculado: `(movimientos_totales - movimientos_sin_match) / movimientos_totales × 100`, redondeado a 1 decimal | Mismo cálculo con los campos equivalentes de `clay_empresas_avance` |
 | `{{asientos_total}}` | `asientos_contables_totales` | `clay_empresas_avance` → `entries_by_user` (total) |
 | `{{asientos_cassius}}` | `asientos_por_cassius` | `clay_empresas_avance` → `entries_by_user` (Cassius) |
 | `{{asientos_manual}}` | `asientos_manuales` | `clay_empresas_avance` → `entries_by_user` (manual) |
 | `{{dtes_cobrar}}` | `dtes_por_cobrar_sin_contabilizar` | `clay_empresas_avance` → `dte` (por cobrar) |
 | `{{dtes_pagar}}` | `dtes_por_pagar_sin_contabilizar` | `clay_empresas_avance` → `dte` (por pagar) |
 | `{{tc_sin_match}}` | `tc_medios_pago_sin_match` | `clay_empresas_avance` → `creditcard` |
+
+`{{pct_match}}` reemplaza en el mail a los campos crudos `pct_conciliacion_cassius_auto`
+y `pct_conciliacion_usuario` — siguen existiendo en el dashboard y se pueden
+seguir consultando si alguien pide el desglose específico, pero ya no se
+muestran por defecto en la tabla de avance del mail (ver decisión #10c en
+`decisiones_pendientes.md`).
+
+Las filas `{{asientos_total}}`, `{{asientos_cassius}}`, `{{asientos_manual}}`,
+`{{dtes_cobrar}}` y `{{dtes_pagar}}` **se omiten por completo** en la tabla de
+avance cuando `{{product_category}}` es `Software Gestión Financiera` o
+`API Bancaria & SII` — ver decisión #11.
+
+| Variable | Fuente |
+|---|---|
+| `{{product_category}}` | `staging.organizations` → `product_category`, filtrado por `real_name = {{nombre_empresa}}` (query 6 de `queries_dashboard.md`) |
 
 ## Checklist de próximos pasos — fuente principal: dashboard Metabase
 
@@ -112,7 +126,10 @@ subtítulo con el nombre de la hija. No se resume en una sola fila por hija.
 
 Esta sección no cambia — el dashboard de onboarding no cubre adopción de
 producto, así que `clay-dw:product-health` sigue siendo la fuente única para
-health score y sugerencias de uso.
+health score y sugerencias de uso. **Excepción:** si `{{product_category}}`
+es `Software Gestión Financiera` o `API Bancaria & SII`, no se consulta esta
+sección — los módulos de menor adopción en esos casos son justamente los
+contables, que la empresa no usa (ver decisión #11).
 
 ## Manual
 
