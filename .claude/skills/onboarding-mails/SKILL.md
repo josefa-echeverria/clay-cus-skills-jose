@@ -1,7 +1,7 @@
 ---
 name: onboarding-mails
 description: "Genera los borradores de correo del proceso de onboarding de Clay: la minuta de bienvenida (Mail 1, enviada dentro de las 24 hs de la primera reunión) y los seguimientos de semana 2, 4 y 6 (Mails 2-4). Usar esta skill siempre que el usuario pida armar, generar o redactar el mail/correo de bienvenida de onboarding, el seguimiento semanal de un cliente en onboarding, la minuta post-reunión, o cuando mencione frases como 'mail de bienvenida', 'seguimiento semana 2/4/6', 'borrador de onboarding para {cliente}', 'próximos pasos del cliente X', o pida actualizar el avance de conciliación/adopción de un cliente en onboarding para enviarlo por correo. También activarla si preguntan por el estado de las tareas de onboarding de una empresa y el objetivo final es comunicárselo al cliente."
-compatibility: "Requiere HubSpot MCP, Clay MCP, Gmail MCP, Diio MCP (solo Mail 1) y clay-dw:product-health (Mails 2-4)."
+compatibility: "Requiere HubSpot MCP, Clay MCP, Gmail MCP, Metabase Clay MCP (dashboard de avance/checklist), Diio MCP (solo Mail 1) y clay-dw:product-health (Mails 2-4)."
 ---
 
 # Mails de Onboarding — Clay CUS
@@ -59,8 +59,17 @@ archivos de referencia). Reglas generales:
 
 - **HubSpot es la fuente de verdad** para datos de cliente/contacto/fechas,
   igual que en el resto de los reportes de Clay.
-- Todos los números de avance (movimientos, matches, asientos, DTEs, tarjetas)
-  salen de `clay_empresas_avance` — no los calcules a mano ni los inventes.
+- **El avance y el checklist de próximos pasos salen del dashboard de
+  Metabase** "Onboarding - Progreso y Checklist" (`staging_marts.organizations_onboarding_progress`
+  y `organizations_checklist_status`, vía Metabase Clay MCP) — no los calcules
+  a mano ni los inventes. Las queries exactas están en
+  `references/queries_dashboard.md`. Si el dashboard no tiene fila para la
+  empresa, usa `clay_empresas_avance` (Clay MCP) como fallback solo para las
+  métricas de avance (el checklist no tiene fallback — ver
+  `references/decisiones_pendientes.md` #6).
+- Si la empresa tiene empresas hijas (grupo empresarial), agrega su checklist
+  también — una tabla por hija. Ver `references/queries_dashboard.md` (query 3)
+  y el detalle en `references/mails_seguimiento.md` (solo aplica a Mails 2-4).
 - El health score y adopción por módulo salen de `clay-dw:product-health`.
 - **Si `clay-dw:product-health` no devuelve datos** (cliente nuevo, sin
   actividad en LogRocket), no lo dejes en blanco ni inventes números: usa el
