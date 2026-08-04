@@ -1,0 +1,147 @@
+# Queries — Dashboard "Onboarding - Progreso y Checklist"
+
+Dashboard de referencia: `analytics.clay.cl/dashboard/607-onboarding-progreso-y-checklist`
+(Metabase, `database_id: 40`, colección "Onboarding"). Estas queries replican
+exactamente las cards del dashboard, filtradas por una empresa puntual, para
+usarlas desde la skill vía **Metabase Clay MCP → `execute_query`**.
+
+Reemplaza siempre `{{nombre_empresa}}` por el nombre exacto tal como aparece
+en el dashboard (mismo valor que usa el filtro "Nombre Empresa" del panel).
+Si el nombre tiene comilla simple, escápala (`''`) antes de armar la query.
+
+## 1. Avance y conciliación de la empresa
+
+Fuente de `{{pct_avance}}`, `{{tareas_ok}}`, `{{tareas_pendientes}}`,
+`{{total_movimientos}}`, `{{movimientos_tarjeta}}`, `{{movimientos_sin_match}}`,
+`{{pct_cassius}}`, `{{pct_usuario}}`, `{{asientos_total}}`,
+`{{asientos_cassius}}`, `{{asientos_manual}}`, `{{dtes_cobrar}}`, `{{dtes_pagar}}`,
+`{{tc_sin_match}}`, `{{rut_empresa}}`, `{{semana_onboarding}}` (contexto),
+`{{onboarder_asignado}}` (contexto).
+
+```sql
+SELECT
+  rut_empresa,
+  nombre_empresa,
+  semana_onboarding,
+  onboarder_asignado,
+  pct_avance,
+  tareas_ok,
+  tareas_pendientes,
+  movimientos_totales,
+  movimientos_tarjeta,
+  movimientos_sin_match,
+  pct_conciliacion_cassius_auto,
+  pct_conciliacion_usuario,
+  tc_medios_pago_sin_match,
+  asientos_contables_totales,
+  asientos_por_cassius,
+  asientos_manuales,
+  dtes_por_cobrar_sin_contabilizar,
+  dtes_por_pagar_sin_contabilizar
+FROM staging_marts.organizations_onboarding_progress
+WHERE es_onboarding = true
+  AND nombre_empresa = '{{nombre_empresa}}'
+```
+
+Si no devuelve fila: la empresa no está marcada `es_onboarding = true` en el
+dashboard (o no existe todavía ahí). Pasa al fallback de `clay_empresas_avance`
+y dilo explícitamente en tu respuesta al usuario.
+
+## 2. Checklist de la empresa (propio, sin hijas)
+
+Fuente de `{{checklist_filas}}` — tabla de próximos pasos de Mails 1-4.
+
+```sql
+SELECT
+  c.area,
+  c.tarea,
+  c.estado,
+  c.fecha_completado
+FROM staging_marts.organizations_checklist_status c
+INNER JOIN staging_marts.organizations_onboarding_progress o
+  ON c.organization_id = o.organization_id
+WHERE o.es_onboarding = true
+  AND o.nombre_empresa = '{{nombre_empresa}}'
+ORDER BY c.area, c.tarea
+```
+
+Estados posibles: `Ok` o `Pendiente` únicamente (ver nota sobre esto en
+`variables.md`). Si no devuelve filas, no asumas "todo pendiente": dilo
+explícitamente como "checklist no disponible en el dashboard".
+
+## 3. ¿Tiene empresas hijas?
+
+Ejecutar siempre antes de armar Mails 2, 3 o 4, para decidir si corresponde
+agregar la sección de hijas.
+
+```sql
+SELECT DISTINCT nombre_empresa
+FROM staging_marts.organizations_checklist_grupo
+WHERE nombre_grupo = '{{nombre_empresa}}'
+  AND rol = 'Hija'
+ORDER BY nombre_empresa
+```
+
+- Sin filas → la empresa no tiene grupo. Omite la sección de hijas sin
+  mencionarla.
+- Con filas → cada fila es una hija; genera una tabla de checklist por cada
+  una (ver query 4), en el orden que devuelva esta lista.
+
+## 4. Checklist de cada empresa hija
+
+Repetir una vez por cada `{{nombre_hija}}` obtenida en la query 3.
+
+```sql
+SELECT
+  area,
+  tarea,
+  estado,
+  fecha_completado
+FROM staging_marts.organizations_checklist_grupo
+WHERE nombre_grupo = '{{nombre_empresa}}'
+  AND rol = 'Hija'
+  AND nombre_empresa = '{{nombre_hija}}'
+ORDER BY area, tarea
+```
+
+## 5. Resumen agregado de hijas (opcional, para el párrafo introductorio del bloque)
+
+```sql
+SELECT
+  count(distinct organization_id) AS empresas_hijas,
+  round(100.0 * count(*) FILTER (WHERE estado = 'Ok') / nullif(count(*), 0), 1) AS pct_avance_hijas,
+  count(*) FILTER (WHERE estado = 'Pendiente') AS tareas_pendientes_hijas
+FROM staging_marts.organizations_checklist_grupo
+WHERE nombre_grupo = '{{nombre_empresa}}'
+  AND rol = 'Hija'
+```
+
+Úsalo solo para el texto de contexto ("las N empresas del grupo tienen en
+promedio X% de avance"), no reemplaza las tablas individuales de la query 4.
+
+## 6. Categoría de producto del cliente (para saber si aplica módulo contable)
+
+Ejecutar siempre antes de armar la tabla de avance de Mails 2, 3 o 4 — determina
+si hay que excluir los campos de asientos/DTE y la tabla de sugerencias de uso
+(ver decisión #11 en `decisiones_pendientes.md`).
+
+```sql
+SELECT product_category
+FROM staging.organizations
+WHERE real_name = '{{nombre_empresa}}'
+```
+
+Valores posibles y qué significan para el mail:
+
+| `product_category` | ¿Tiene módulo contable activo? | Efecto en el mail |
+|---|---|---|
+| `Software Gestión Financiera` | No | Excluir asientos/DTE y sugerencias de uso |
+| `API Bancaria & SII` | No | Excluir asientos/DTE y sugerencias de uso |
+| `Software Gestión Financiera & Contable` | Sí | Mail completo, sin cambios |
+| `Servicio con RRHH` / `Servicio sin RRHH` | Sí | Mail completo, sin cambios |
+| `Sin categoría` | Desconocido | Tratar igual que "Sí" (mail completo) y avisar al usuario que la empresa no tiene categoría asignada en el DW, para que lo revisen con Producto/OPS |
+
+Se puede confirmar de forma cruzada (no reemplaza esta query, pero sirve como
+señal adicional) consultando `Clay:clay_empresas_detalle` con el RUT de la
+empresa: si `config.modulos.gestion_contable` es `false`, es consistente con
+que la empresa no tenga módulo contable activo.
