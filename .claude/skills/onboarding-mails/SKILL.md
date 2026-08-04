@@ -107,6 +107,17 @@ Usa el Gmail MCP para crear un **draft** (nunca `send`) con:
   onboarder haya indicado — ver decisión pendiente #3 en
   `references/decisiones_pendientes.md`)
 
+**Las tablas SIEMPRE van en HTML, nunca en markdown.** Gmail no renderiza
+tablas markdown (`| Área | Tarea |...`) — quedan como texto plano con pipes,
+"se ven corridas". Usa `htmlBody` (no solo `body`) con una tabla `<table>`
+real: bordes (`border: 1px solid #ddd`), celdas con `padding: 8px`, encabezado
+con fondo gris claro (`background-color: #f2f2f2`) y filas alternadas (`#fafafa`)
+para legibilidad. Mantén `body` (texto plano) como respaldo simple sin la
+tabla renderizada — Gmail usa `htmlBody` como versión principal cuando ambos
+están presentes. Esto aplica a **las 4 plantillas** (Mail 1 y Mails 2-4), no
+solo a la de seguimiento. Ver decisión confirmada #10 en
+`references/decisiones_pendientes.md`.
+
 Confirma al usuario que el borrador quedó listo y resume qué datos se
 completaron con éxito y cuáles usaron un fallback o quedaron marcados como
 "no disponible", para que sepa qué revisar antes de enviar.
