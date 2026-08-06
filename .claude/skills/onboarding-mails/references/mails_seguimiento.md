@@ -19,7 +19,7 @@ Usa la herramienta `execute_card` de Metabase Clay con `dashboard_id = 607`:
 
 | Card | `card_id` | Qué trae |
 |---|---|---|
-| Onboarding - Avance y Conciliación por Empresa | **6206** | Una fila por empresa: `rut_empresa`, `nombre_empresa`, `semana_onboarding`, `onboarder_asignado`, `pct_avance`, `tareas_ok`, `tareas_pendientes`, `movimientos_totales`, `movimientos_tarjeta`, `movimientos_sin_match`, `pct_conciliacion_cassius_auto`, `pct_conciliacion_usuario`, `tc_medios_pago_sin_match`, `asientos_contables_totales`, `asientos_por_cassius`, `asientos_manuales`, `dtes_por_cobrar_sin_contabilizar`, `dtes_por_pagar_sin_contabilizar` |
+| Onboarding - Avance y Conciliación por Empresa | **6206** | Una fila por empresa: `rut_empresa`, `nombre_empresa`, `semana_onboarding`, `onboarder_asignado`, `pct_avance`, `tareas_ok`, `tareas_pendientes`, `movimientos_totales`, `movimientos_tarjeta`, `match cassius (n)`, `match usuario (n)`, `movimientos_sin_match`, `% match cassius`, `% match usuario`, `tc_medios_pago_sin_match`, `asientos_contables_totales`, `asientos_por_cassius`, `asientos_manuales`, `% asientos cassius`, `% asientos manual`, `dtes_por_cobrar_sin_contabilizar`, `dtes_por_pagar_sin_contabilizar`. **Columnas con espacio en el nombre — van entre comillas/tal cual las devuelve `execute_card`.** |
 | Checklist - Detalle por Empresa y Tarea | **6207** | Una fila por tarea: `rut_empresa`, `nombre_empresa`, `onboarder_asignado`, `area`, `tarea`, `estado` (`Ok`/`Pendiente`), `fecha_completado` |
 
 **Ninguno de los dos cards acepta filtro de empresa desde `execute_card`**
@@ -105,14 +105,21 @@ Sale directo de la fila de la card 6206 para esa empresa. Compará contra la
 semana anterior solo si tenés ese dato guardado de un mail previo (no lo
 inventes ni lo dejes en blanco — usá `—` si no lo tenés).
 
+**Cambio (agosto 2026): la card 6206 se modificó.** Las columnas viejas
+`pct_conciliacion_cassius_auto` y `pct_conciliacion_usuario` ya no existen —
+fueron reemplazadas por `% match cassius` y `% match usuario` (más las
+columnas nuevas de asientos, ver sección 2). Si esta tabla no calza con lo
+que devuelve `execute_card`, volvé a inspeccionar las columnas reales antes
+de asumir que siguen igual.
+
 | Métrica | Valor actual | Semana anterior |
 |---|---|---|
 | % Avance total del checklist | `{{pct_avance}}%` | — |
 | Tareas completadas / pendientes | `{{tareas_ok}}` / `{{tareas_pendientes}}` | — |
 | Movimientos totales | `{{movimientos_totales}}` | — |
 | Movimientos sin match | `{{movimientos_sin_match}}` | — |
-| % Conciliación Cassius (auto) | `{{pct_conciliacion_cassius_auto}}%` | — |
-| % Conciliación por usuario | `{{pct_conciliacion_usuario}}%` | — |
+| Match Cassius (cantidad) | `{{match_cassius_n}}` | — |
+| Match usuario (cantidad) | `{{match_usuario_n}}` | — |
 | Movimientos de tarjeta | `{{movimientos_tarjeta}}` | — |
 | TC/Medios de pago sin match | `{{tc_medios_pago_sin_match}}` | — |
 | Asientos contables totales | `{{asientos_contables_totales}}` | — |
@@ -121,31 +128,70 @@ inventes ni lo dejes en blanco — usá `—` si no lo tenés).
 | DTEs por cobrar sin contabilizar | `{{dtes_por_cobrar_sin_contabilizar}}` | — |
 | DTEs por pagar sin contabilizar | `{{dtes_por_pagar_sin_contabilizar}}` | — |
 
+Los 4 porcentajes destacados (% match Cassius, % match usuario, % asientos
+Cassius, % asientos manual) **no van en esta tabla** — van en el apartado
+propio de la sección 2, que es donde el onboarder los espera ver primero.
+
 ## 2. Automatización con Cassius (apartado destacado)
 
 Este bloque va **siempre**, en un apartado propio y visible (no mezclado
-dentro de la tabla de avance de la sección 1, aunque los datos de origen
-sean los mismos), porque es lo que más le interesa mostrar al cliente sobre
-cuánto está trabajando la plataforma por él:
+dentro de la tabla de avance de la sección 1), con los 4 porcentajes que la
+card 6206 ya trae calculados — no hay que calcular nada a mano:
 
 | Métrica | Valor |
 |---|---|
-| % de match (conciliación) hechos por Cassius | `{{pct_match_cassius}}%` |
-| % de asientos contables hechos por Cassius | `{{pct_asientos_cassius}}%` |
+| % de match hechos por Cassius | `{{pct_match_cassius}}` |
+| % de match hechos por el usuario | `{{pct_match_usuario}}` |
+| % de asientos contables hechos por Cassius | `{{pct_asientos_cassius}}` |
+| % de asientos contables hechos manualmente | `{{pct_asientos_manual}}` |
 
-Cómo se calcula cada variable (ver también `references/variables.md`):
+Fuente de cada variable (columnas reales de la card 6206, ver también
+`references/variables.md`):
 
-- `{{pct_match_cassius}}` = `pct_conciliacion_cassius_auto` de la card 6206,
-  tal cual viene — es el mismo dato que en la tabla de avance, solo que acá
-  se destaca solo.
-- `{{pct_asientos_cassius}}` = **no viene directo de la card, hay que
-  calcularlo**: `asientos_por_cassius / asientos_contables_totales * 100`,
-  redondeado a 1 decimal. Si `asientos_contables_totales` es 0, no dividas
-  por cero — mostrá "sin asientos registrados aún" en esa fila.
+- `{{pct_match_cassius}}` = columna `% match cassius`
+- `{{pct_match_usuario}}` = columna `% match usuario`
+- `{{pct_asientos_cassius}}` = columna `% asientos cassius`
+- `{{pct_asientos_manual}}` = columna `% asientos manual`
 
-Si la empresa todavía no tiene fila en la card 6206, mostrá el bloque
-completo con el texto "Aún no hay datos de automatización disponibles" en
-vez de inventar porcentajes o dejarlo vacío.
+**Regla para dato faltante (agosto 2026): si alguno de estos 4 viene
+`null`** (pasa cuando `asientos_contables_totales = 0`, por ejemplo empresas
+muy nuevas) **dejá la celda vacía en la tabla del mail**, sin guion `—` ni
+texto de "sin datos disponibles" — es a propósito, para que el onboarder la
+complete a mano antes de enviar. No confundas esto con que la empresa no
+aparezca en la card 6206 (eso sí sigue siendo un problema real a reportar,
+no un vacío esperado).
+
+**Plantilla HTML de este bloque (no markdown, ver "Formato del cuerpo del
+mail" más abajo):**
+
+```html
+<h3>Automatización con Cassius</h3>
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">Métrica</th>
+    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">Valor</th>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #ddd; padding: 6px;">% de match hechos por Cassius</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_match_cassius}}</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #ddd; padding: 6px;">% de match hechos por el usuario</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_match_usuario}}</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #ddd; padding: 6px;">% de asientos contables hechos por Cassius</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_asientos_cassius}}</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #ddd; padding: 6px;">% de asientos contables hechos manualmente</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_asientos_manual}}</td>
+  </tr>
+</table>
+```
+
+Dejá la celda de `<td>` vacía (sin texto entre las etiquetas) cuando el
+valor sea `null`, tal como indica la regla de arriba.
 
 ## 3. Resumen agregado del grupo (solo si hay empresa madre/hijas)
 
@@ -203,6 +249,18 @@ Nota: la card 6206 también trae un campo `semana_onboarding` ya calculado
 por el dashboard — puede servir como referencia cruzada si el número que
 calculaste desde HubSpot no coincide, pero no lo reemplaces sin entender por
 qué difieren (pueden estar contando desde fechas distintas).
+
+## Formato del cuerpo del mail (crítico)
+
+**El cuerpo del draft tiene que ser HTML real, con tablas `<table>` de
+verdad — nunca la sintaxis markdown de pipes (`| Col | Col |`) pegada como
+texto literal.** Gmail no interpreta markdown: si el borrador queda con
+barras `|` visibles en vez de una tabla, es porque se generó como texto
+plano en lugar de HTML. Las tablas de este archivo (avance, Cassius,
+resumen de grupo, próximos pasos) están en markdown solo porque es más
+legible en esta spec — al armar el mail real, convertí cada una a
+`<table><tr><th>...</th></tr><tr><td>...</td></tr></table>` con estilos
+simples (bordes finos, encabezado en negrita) antes de pasarlo al Gmail MCP.
 
 ## Estructura del mail
 
