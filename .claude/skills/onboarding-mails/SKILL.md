@@ -111,6 +111,43 @@ draft, avisa al onboarder en vez de enviar el mail sin el adjunto.
 
 ## Paso 4 — Crear el borrador
 
+**Formato del cuerpo (crítico, no opcional):** el body del draft tiene que
+ser HTML real. Esto vale siempre, sin importar si esta skill se invoca desde
+Claude Code, desde una rutina automática, o directamente pidiéndoselo a
+Claude en el chat — en los tres casos el destino final es el mismo `create_draft`
+del Gmail MCP, y Gmail no interpreta markdown.
+
+Usa siempre esta plantilla como base para cada tabla (ajustando filas y
+columnas al contenido real, nunca dejando el `{{...}}` sin resolver):
+
+```html
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">Columna 1</th>
+    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">Columna 2</th>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{valor_1}}</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{valor_2}}</td>
+  </tr>
+</table>
+```
+
+**Auto-verificación obligatoria antes de llamar a `create_draft`:** releé el
+body completo que estás a punto de enviar y confirmá:
+
+1. Contiene las etiquetas `<table>`, `<tr>` y `<td>` para cada tabla del
+   mail (avance, Cassius, resumen de grupo si aplica, próximos pasos).
+2. **No** contiene ninguna línea con el patrón `| algo | algo |` (sintaxis
+   markdown). Si aparece, es que quedó sin convertir — arreglalo antes de
+   crear el draft, no lo crees "para corregir después".
+3. Ningún `{{placeholder}}` quedó sin resolver.
+
+Si por algún motivo el Gmail MCP disponible no acepta HTML en el body (por
+ejemplo, solo soporta texto plano), decilo explícitamente al usuario en vez
+de crear el draft con markdown — es preferible avisar que entregar un mail
+roto.
+
 Usa el Gmail MCP para crear un **draft** (nunca `send`) con:
 
 - Para: `{{email_contacto_principal}}`
