@@ -17,9 +17,20 @@ cuál es el primer paso concreto que el cliente tiene que dar.
 | Estructura de grupo (madre/hijas) | HubSpot | `rut_empresa_madre`, `rut_empresas_hijas` (companies) — ver detalle abajo |
 | Resumen de la reunión (notas Diio) | Diio | `summarize_client_interactions_content` |
 | Estado de checklist (bancos, SII, usuarios, etc.) | Dashboard 607, card **6207** | `execute_card` (dashboard_id 607, card_id 6207), filtrar por empresa — ver detalle abajo |
-| Avance y automatización Cassius | Dashboard 607, card **6206** | `execute_card` (dashboard_id 607, card_id 6206), filtrar por empresa — ver detalle abajo |
+| Avance y automatización Cassius | Dashboard 607, card **6206** | `execute_card` (dashboard_id 607, card_id 6206), filtrar por empresa — ver detalle abajo. **Columnas cambiaron en agosto 2026** — ver `references/mails_seguimiento.md` para la lista actualizada |
 | Facturador y XML | Diio | `get_deal_details` |
 | Comentario libre del onboarder | Manual | Se lo pides al onboarder antes de enviar |
+
+## Formato del cuerpo del mail (crítico)
+
+**El cuerpo del draft tiene que ser HTML real, con tablas `<table>` de
+verdad — nunca la sintaxis markdown de pipes (`| Col | Col |`) pegada como
+texto literal.** Gmail no interpreta markdown: si el borrador queda con
+barras `|` visibles en vez de una tabla, es porque se generó como texto
+plano en lugar de HTML. Convertí siempre las tablas de este mail (próximos
+pasos, Cassius, resumen de grupo si aplica) a
+`<table><tr><th>...</th></tr><tr><td>...</td></tr></table>` antes de pasarlo
+al Gmail MCP.
 
 **Cambio importante:** el estado de conexiones (bancos, SII, usuarios) ya no
 se consulta vía Clay MCP ni tablas propias — sale de la misma card 6207 que
@@ -83,24 +94,59 @@ sin columna de estado.
 ## Automatización con Cassius (apartado destacado)
 
 Igual que en los mails de seguimiento, este bloque va siempre en un apartado
-propio y visible, aunque en el Mail 1 sea más probable que todavía no haya
-datos (recién arrancó el onboarding):
+propio y visible, con los 4 porcentajes que la card 6206 trae ya calculados
+(no hay que calcular nada a mano):
 
 | Métrica | Valor |
 |---|---|
-| % de match (conciliación) hechos por Cassius | `{{pct_match_cassius}}%` |
-| % de asientos contables hechos por Cassius | `{{pct_asientos_cassius}}%` |
+| % de match hechos por Cassius | `{{pct_match_cassius}}` |
+| % de match hechos por el usuario | `{{pct_match_usuario}}` |
+| % de asientos contables hechos por Cassius | `{{pct_asientos_cassius}}` |
+| % de asientos contables hechos manualmente | `{{pct_asientos_manual}}` |
 
-- `{{pct_match_cassius}}` = `pct_conciliacion_cassius_auto` de la card 6206.
-- `{{pct_asientos_cassius}}` = calculado como
-  `asientos_por_cassius / asientos_contables_totales * 100`, redondeado a 1
-  decimal (no viene directo de la card). Si `asientos_contables_totales` es
-  0, mostrá "sin asientos registrados aún".
+Fuente (columnas reales de la card 6206 — ver `references/variables.md`):
+`% match cassius`, `% match usuario`, `% asientos cassius`, `% asientos
+manual`.
 
-Si la empresa no tiene fila todavía en la card 6206 (lo más común recién
-después de la primera reunión), mostrá el bloque completo con el texto
-"Aún no hay datos de automatización disponibles — es normal recién
-empezando" en vez de dejarlo vacío o inventar números.
+**Regla para dato faltante:** si alguno de estos 4 viene `null` (pasa
+cuando `asientos_contables_totales = 0`, muy común en el Mail 1 porque
+recién arrancó el onboarding), **dejá la celda vacía en la tabla del mail**,
+sin guion ni texto — es a propósito, para que el onboarder la complete a
+mano antes de enviar. Si la empresa no tiene fila todavía en la card 6206
+(nunca se sincronizó), ahí sí es un problema real — decilo explícitamente en
+el mail en vez de dejar el bloque completo vacío sin explicación.
+
+**Plantilla HTML de este bloque (no markdown, ver "Formato del cuerpo del
+mail" más abajo):**
+
+```html
+<h3>Automatización con Cassius</h3>
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">Métrica</th>
+    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">Valor</th>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #ddd; padding: 6px;">% de match hechos por Cassius</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_match_cassius}}</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #ddd; padding: 6px;">% de match hechos por el usuario</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_match_usuario}}</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #ddd; padding: 6px;">% de asientos contables hechos por Cassius</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_asientos_cassius}}</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #ddd; padding: 6px;">% de asientos contables hechos manualmente</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_asientos_manual}}</td>
+  </tr>
+</table>
+```
+
+Dejá la celda de `<td>` vacía (sin texto entre las etiquetas) cuando el
+valor sea `null`, tal como indica la regla de arriba.
 
 ## Adjunto
 
