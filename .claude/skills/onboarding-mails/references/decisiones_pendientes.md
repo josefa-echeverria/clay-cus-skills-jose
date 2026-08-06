@@ -13,6 +13,8 @@ aplicarlo en silencio.
 | 3 | ¿Calendly por onboarder o uno general de Clay? | Por onboarder: usa el link que el onboarder te indique en la conversación. Si no lo tenés, pregúntalo — no inventes ni dejes un link genérico. |
 | 4 | ¿Cómo se maneja el envío si el cliente tiene múltiples usuarios? | Enviar solo al contacto principal (`{{email_contacto_principal}}` de HubSpot) en Para + `ob@clay.cl` en CC. Si el onboarder pide incluir a más gente, agrégalos en CC, pero no lo hagas por defecto. |
 | 5 | ¿El skill puede ejecutarse manualmente fuera de las fechas automáticas? | Sí — siempre se ejecuta a pedido del onboarder en el chat (o de la rutina `seguimiento-onboarding` de Claude Code), calculando igual la fecha/semana correspondiente para dar contexto. |
+| 6 | ¿Cómo se detecta si una empresa tiene estructura de grupo (madre/hijas)? | **✅ Resuelto (agosto 2026):** propiedades de HubSpot en el objeto companies: `rut_empresa_madre` (si la empresa es hija) y `rut_empresas_hijas` (si es madre), confirmadas vía `search_properties`. Se usa `hs_parent_company_id` (asociación nativa) solo como respaldo/cruce si los dos campos de RUT faltan o no coinciden — no lo reemplaza. |
+| 7 | ¿El % de asientos hechos por Cassius viene calculado en el dashboard 607? | **No.** La card 6206 trae los conteos (`asientos_contables_totales`, `asientos_por_cassius`) pero no el porcentaje ya calculado. La skill lo calcula ella misma: `asientos_por_cassius / asientos_contables_totales * 100`. Si en algún momento Piero agrega esta columna directo a la card 6206, hay que actualizar `references/variables.md` y dejar de calcularlo a mano. |
 
 ## Historial: cómo se llegó a usar el dashboard 607 (julio 2026)
 
