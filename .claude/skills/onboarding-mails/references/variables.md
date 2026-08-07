@@ -14,8 +14,8 @@
 
 ## Estructura de grupo — HubSpot (companies)
 
-**Nuevo (agosto 2026).** Antes de armar cualquier mail, revisar estas
-propiedades de la empresa que dispara el envío:
+Antes de armar cualquier mail, revisar estas propiedades de la empresa que
+dispara el envío:
 
 | Variable | Columna en HubSpot (companies) |
 |---|---|
@@ -38,6 +38,11 @@ A partir de estos campos se deriva, para el resumen agregado (ver
 **No se usa `clay_empresas_avance` (Clay MCP) ni `sources.*` directamente.**
 Filtrar el resultado de la card por `nombre_empresa` (case-insensitive).
 
+**Columnas confirmadas directo en la card (verificado en Metabase el 7 de
+agosto 2026 — Piero actualizó la card el 6 de agosto).** Varias tienen
+espacios en el nombre; van tal cual las devuelve `execute_card`, no las
+renombres:
+
 | Variable | Columna en card 6206 |
 |---|---|
 | `{{pct_avance}}` | `pct_avance` |
@@ -45,27 +50,41 @@ Filtrar el resultado de la card por `nombre_empresa` (case-insensitive).
 | `{{tareas_pendientes}}` | `tareas_pendientes` |
 | `{{movimientos_totales}}` | `movimientos_totales` |
 | `{{movimientos_tarjeta}}` | `movimientos_tarjeta` |
+| `{{match_cassius_n}}` | `match cassius (n)` |
+| `{{match_usuario_n}}` | `match usuario (n)` |
 | `{{movimientos_sin_match}}` | `movimientos_sin_match` |
-| `{{pct_conciliacion_cassius_auto}}` | `pct_conciliacion_cassius_auto` |
-| `{{pct_conciliacion_usuario}}` | `pct_conciliacion_usuario` |
+| `{{pct_match_cassius}}` | `% match cassius` |
+| `{{pct_match_usuario}}` | `% match usuario` |
 | `{{tc_medios_pago_sin_match}}` | `tc_medios_pago_sin_match` |
 | `{{asientos_contables_totales}}` | `asientos_contables_totales` |
 | `{{asientos_por_cassius}}` | `asientos_por_cassius` |
 | `{{asientos_manuales}}` | `asientos_manuales` |
+| `{{pct_asientos_cassius}}` | `% asientos cassius` — **viene directo de la card**, no se calcula a mano (esto cambió el 6 de agosto 2026; antes había que calcularlo con `asientos_por_cassius / asientos_contables_totales`, ya no) |
+| `{{pct_asientos_manual}}` | `% asientos manual` — mismo caso, viene directo |
 | `{{dtes_por_cobrar_sin_contabilizar}}` | `dtes_por_cobrar_sin_contabilizar` |
 | `{{dtes_por_pagar_sin_contabilizar}}` | `dtes_por_pagar_sin_contabilizar` |
 | `{{semana_onboarding}}` | `semana_onboarding` (referencia cruzada, no reemplaza el cálculo desde `createdate`) |
 
-## Automatización con Cassius — calculadas (apartado destacado en todos los mails)
+Las columnas viejas `pct_conciliacion_cassius_auto` y
+`pct_conciliacion_usuario` **ya no existen** — fueron reemplazadas por
+`% match cassius` y `% match usuario` (más las columnas de cantidad `match
+cassius (n)` / `match usuario (n)`).
 
-**Nuevo (agosto 2026).** Estas dos variables van en un apartado propio y
-visible en los 4 mails (bienvenida + los 3 de seguimiento), no solo en la
-tabla general de avance:
+## Automatización con Cassius — apartado destacado en todos los mails
 
-| Variable | Cómo se obtiene |
+Van en un apartado propio y visible en los 4 mails (bienvenida + los 3 de
+seguimiento), no solo en la tabla general de avance:
+
+| Variable | Fuente |
 |---|---|
-| `{{pct_match_cassius}}` | = `pct_conciliacion_cassius_auto` de la card 6206, tal cual (alias más claro para el apartado destacado) |
-| `{{pct_asientos_cassius}}` | **Calculado, no viene directo de la card:** `asientos_por_cassius / asientos_contables_totales * 100`, redondeado a 1 decimal. Si `asientos_contables_totales = 0`, usar el texto "sin asientos registrados aún" en vez de dividir por cero |
+| `{{pct_match_cassius}}` | `% match cassius` (card 6206), directo |
+| `{{pct_match_usuario}}` | `% match usuario` (card 6206), directo |
+| `{{pct_asientos_cassius}}` | `% asientos cassius` (card 6206), directo |
+| `{{pct_asientos_manual}}` | `% asientos manual` (card 6206), directo |
+
+Si alguno viene `null` (pasa cuando `asientos_contables_totales = 0`, común
+en el Mail 1), dejar la celda vacía en la tabla del mail — ver la regla
+completa en `references/mails_seguimiento.md`, sección 2.
 
 ## Checklist / próximos pasos — Dashboard 607, card 6207 (`execute_card`, dashboard_id 607, card_id 6207)
 
@@ -94,5 +113,4 @@ Regla general: si una variable no tiene dato disponible (la empresa no
 aparece en ninguna de las dos cards), no la dejes como `{{placeholder}}`
 crudo en el texto final — reemplázala por algo explícito como "dato no
 disponible" para que el onboarder lo note al revisar el borrador. Lo mismo
-aplica a `{{pct_match_cassius}}`, `{{pct_asientos_cassius}}` y a las filas
-del resumen agregado del grupo.
+aplica a las filas del resumen agregado del grupo.

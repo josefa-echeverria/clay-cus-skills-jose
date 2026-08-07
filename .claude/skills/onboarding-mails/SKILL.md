@@ -1,169 +1,146 @@
-# Mail 1 — Minuta de Reunión de Bienvenida
+---
+name: onboarding-mails
+description: "Genera los borradores de correo del proceso de onboarding de Clay: la minuta de bienvenida (Mail 1, enviada dentro de las 24 hs de la primera reunión) y los seguimientos de semana 2, 4 y 6 (Mails 2-4). Usar esta skill siempre que el usuario pida armar, generar o redactar el mail/correo de bienvenida de onboarding, el seguimiento semanal de un cliente en onboarding, la minuta post-reunión, o cuando mencione frases como 'mail de bienvenida', 'seguimiento semana 2/4/6', 'borrador de onboarding para {cliente}', 'próximos pasos del cliente X', o pida actualizar el avance de conciliación/adopción de un cliente en onboarding para enviarlo por correo. También activarla si preguntan por el estado de las tareas de onboarding de una empresa y el objetivo final es comunicárselo al cliente, o si la empresa forma parte de un grupo madre/hijas."
+compatibility: "Requiere HubSpot MCP, Gmail MCP, Diio MCP (solo Mail 1), y Metabase Clay (execute_card sobre el dashboard 607, cards 6206 y 6207) para todo dato de avance/checklist. No usa Clay MCP ni consultas SQL directas a sources.* — ver references/decisiones_pendientes.md para el historial de por qué."
+---
 
-Se envía (como borrador) dentro de las 24 hs posteriores a la primera reunión
-con el cliente.
+# Mails de Onboarding — Clay CUS
 
-## Propósito
+## Qué hace esta skill
 
-No es un resumen cualquiera: es el primer documento operativo que el cliente
-recibe. Tiene que quedar clarísimo qué se hizo en la reunión, qué falta, y
-cuál es el primer paso concreto que el cliente tiene que dar.
+Arma el borrador de uno de los cuatro correos del ciclo de onboarding y lo deja
+como **borrador en Gmail**, nunca enviado. El onboarder humano siempre revisa,
+edita y decide cuándo enviar — ver "Regla de oro" más abajo.
 
-## Fuentes de datos
-
-| Dato | Fuente | Cómo buscarlo |
+| Mail | Cuándo | Referencia |
 |---|---|---|
-| Nombre empresa y contacto principal | HubSpot | `search_crm_objects` |
-| Estructura de grupo (madre/hijas) | HubSpot | `rut_empresa_madre`, `rut_empresas_hijas` (companies) — ver detalle abajo |
-| Resumen de la reunión (notas Diio) | Diio | `summarize_client_interactions_content` |
-| Estado de checklist (bancos, SII, usuarios, etc.) | Dashboard 607, card **6207** | `execute_card` (dashboard_id 607, card_id 6207), filtrar por empresa — ver detalle abajo |
-| Avance y automatización Cassius | Dashboard 607, card **6206** | `execute_card` (dashboard_id 607, card_id 6206), filtrar por empresa — ver detalle abajo. **Columnas cambiaron en agosto 2026** — ver `references/mails_seguimiento.md` para la lista actualizada |
-| Facturador y XML | Diio | `get_deal_details` |
-| Comentario libre del onboarder | Manual | Se lo pides al onboarder antes de enviar |
+| 1 — Minuta de bienvenida | Dentro de 24 hs de la primera reunión | `references/mail1_bienvenida.md` |
+| 2, 3, 4 — Seguimiento semana 2/4/6 | `createdate` del ticket + 14/28/42 días, o a pedido | `references/mails_seguimiento.md` |
+
+## Fuente de datos de avance: SOLO el dashboard de Metabase
+
+**Toda la información de avance de conciliación y checklist de próximos
+pasos viene exclusivamente del dashboard `Onboarding - Progreso y Checklist`
+(id 607, `analytics.clay.cl/dashboard/607-onboarding-progreso-y-checklist`),
+vía la herramienta `execute_card` de Metabase Clay (cards 6206 y 6207).** No
+consultes `sources.*` directamente, no uses `clay_empresas_avance` (Clay
+MCP), no inventes nombres de tabla ni de columna. El detalle completo de qué
+card usar para qué dato, y las columnas exactas (que cambiaron en agosto
+2026 — no asumas que las viejas siguen vigentes), está en
+`references/mails_seguimiento.md`, `references/mail1_bienvenida.md` y
+`references/variables.md`.
+
+Esto es así porque Sole no tiene ni quiere acceso directo a producción, y
+este dashboard ya integra todo lo necesario con datos reales y actualizados
+— ver `references/decisiones_pendientes.md` para el historial completo de
+cómo se llegó a esta decisión.
+
+## Empresas con estructura de grupo (madre/hijas)
+
+Algunas empresas están agrupadas (una madre con una o más hijas). Antes de
+armar cualquier mail, revisá si la empresa forma parte de un grupo — el
+procedimiento exacto (propiedades de HubSpot a chequear, cómo armar el
+resumen agregado) está en la sección "0. Detectar estructura de grupo" de
+`references/mails_seguimiento.md`. Aplica tanto a los mails de seguimiento
+como al Mail 1.
 
 ## Formato del cuerpo del mail (crítico)
 
-**El cuerpo del draft tiene que ser HTML real, con tablas `<table>` de
-verdad — nunca la sintaxis markdown de pipes (`| Col | Col |`) pegada como
-texto literal.** Gmail no interpreta markdown: si el borrador queda con
-barras `|` visibles en vez de una tabla, es porque se generó como texto
-plano en lugar de HTML. Convertí siempre las tablas de este mail (próximos
-pasos, Cassius, resumen de grupo si aplica) a
-`<table><tr><th>...</th></tr><tr><td>...</td></tr></table>` antes de pasarlo
-al Gmail MCP.
+**El borrador en Gmail tiene que llevar HTML real, con tablas `<table>` de
+verdad — nunca pipes de markdown (`| Col | Col |`) pegados como texto
+literal.** Gmail no interpreta markdown; si el borrador queda con barras `|`
+visibles, se generó mal. Las tablas de las referencias de esta skill están
+en markdown solo porque es más legible en la spec — al armar el mail real,
+convertí cada una a HTML antes de pasarla al Gmail MCP. Detalle y plantilla
+de ejemplo en `references/mails_seguimiento.md` (sección "Formato del
+cuerpo del mail").
 
-**Cambio importante:** el estado de conexiones (bancos, SII, usuarios) ya no
-se consulta vía Clay MCP ni tablas propias — sale de la misma card 6207 que
-usan los mails de seguimiento (`references/mails_seguimiento.md`), porque
-"Conectar cuentas bancarias" y "Conectar SII" son tareas del mismo checklist
-que trae esa card. No dupliques lógica: es la misma fuente para las 4 tareas
-del área "Ajustes Generales" (Activar conciliación automática, Conectar
-cuentas bancarias, Conectar SII, Crear usuarios y permisos).
+## Regla de oro: nunca se envía solo
 
-Si la empresa es tan nueva que todavía no aparece en el dashboard 607 (recién
-salió de la reunión de bienvenida, antes de la primera sincronización), es
-válido no tener estado todavía — decilo explícitamente en el mail en vez de
-mostrar `⏳ Pendiente` en todo, que insinúa que ya se revisó. Lo mismo aplica
-al bloque de Cassius más abajo: si no hay fila en la card 6206, no inventes
-porcentajes.
+Ningún mail de esta skill sale directo al cliente. El resultado final siempre
+es un **borrador de Gmail** dirigido al onboarder, quien puede:
 
-## Estructura de grupo (empresa madre / hijas)
+- agregar su comentario libre,
+- editar cualquier parte del texto,
+- cancelar y reprogramar.
 
-Antes de armar el mail, revisá en HubSpot (companies) las mismas propiedades
-que usan los mails de seguimiento:
+Si en algún momento se te pide "envíalo directamente" sin pasar por el
+onboarder, aclara que esta skill está diseñada para dejarlo en borrador y
+confirma si de verdad quiere saltarse la revisión.
 
-- **`rut_empresa_madre`** — si tiene valor, esta empresa es una **hija**.
-- **`rut_empresas_hijas`** — si tiene valor, esta empresa es una **madre**
-  con una o más hijas.
-- **`hs_parent_company_id`** — respaldo/cruce si los dos campos de RUT
-  faltan o no coinciden.
+## Paso 0 — Identificar cliente y tipo de mail
 
-Si hay estructura de grupo, sigue exactamente el mismo procedimiento y
-formato de tabla que la sección "0. Detectar estructura de grupo" y
-"3. Resumen agregado del grupo" de `references/mails_seguimiento.md` — no
-dupliques la lógica acá, solo aplicala. La única diferencia en el Mail 1 es
-que es más probable que alguna empresa del grupo (o la propia empresa que
-dispara el mail) todavía no tenga fila en la card 6206/6207 por ser recién
-incorporada — en ese caso, usá `—` / "Sin dato en el dashboard" en vez de
-omitir la fila, igual que en seguimiento.
+1. **Empresa/cliente** — nombre o RUT. Si es ambiguo, búscalo en HubSpot
+   (`search_crm_objects`) antes de preguntar; solo pregunta si hay más de un
+   match razonable. Al cruzar contra el dashboard de Metabase, comparar
+   `nombre_empresa` sin distinguir mayúsculas/minúsculas — pueden no
+   coincidir exactamente (ej. "Carotrini" en HubSpot vs. "CAROTRINI SPA" en
+   el dashboard).
+2. **¿Es parte de un grupo?** Ver sección de arriba — revisalo antes de
+   seguir, porque cambia si hace falta un bloque de resumen agregado.
+3. **Qué mail toca.** Si el usuario no lo dice explícitamente, calcúlalo desde
+   `createdate` (fecha de creación del ticket en HubSpot):
+   - Sin reunión de bienvenida registrada todavía → Mail 1.
+   - Reunión ya hecha → semana correspondiente según los días transcurridos
+     desde `createdate` (14/28/42 ± unos días de margen). Si cae justo
+     entre dos, pregunta cuál corresponde en vez de asumir.
 
-## Tabla de próximos pasos
+## Paso 1 — Recolectar datos
 
-Usa las 11 tareas reales del checklist (área + tarea), tal como vienen de la
-card 6207 — no la lista genérica de versiones anteriores de esta skill:
+Sigue la tabla de fuentes de datos del mail correspondiente (están en los
+archivos de referencia). Reglas generales:
 
-| Área | Tarea |
-|---|---|
-| Ajustes Generales | Activar conciliación automática |
-| Ajustes Generales | Conectar cuentas bancarias |
-| Ajustes Generales | Conectar SII |
-| Ajustes Generales | Crear usuarios y permisos |
-| Contabilidad | Cargar asiento de apertura |
-| Contabilidad | Categorizar clientes y proveedores |
-| Gestión Bancaria | Realizar primera conciliación bancaria |
-| Gestión Bancaria | Revisar movimientos del último mes |
-| Gestión del Negocio | Explorar flujo de caja |
-| Gestión del Negocio | Explorar panel de control |
-| Obligaciones | Crear Asiento contable Manual |
+- **HubSpot es la fuente de verdad** para datos de cliente/contacto/fechas y
+  para la estructura de grupo (`rut_empresa_madre`, `rut_empresas_hijas`).
+- **El dashboard 607 (cards 6206 y 6207, vía `execute_card`) es la fuente de
+  verdad para avance, conciliación con Cassius y checklist** — no la
+  reemplaces por otra cosa, y no asumas nombres de columna viejos sin
+  revisar `references/variables.md`.
+- El comentario libre del onboarder es manual — pregúntaselo al usuario antes
+  de generar el borrador final si no te lo dio ya. No lo redactes tú en su
+  nombre salvo que te lo pida explícitamente.
+- Si una empresa no aparece en los resultados del dashboard (ni con
+  comparación case-insensitive ni parcial), recién ahí es válido reportar
+  "sin dato" — no antes de intentar el cruce.
 
-Si la empresa ya aparece en el dashboard, usa el `estado` real de cada fila
-(`Ok` → `✅ Ok`, `Pendiente` → `⏳ Pendiente`) en vez de asumir. Si todavía no
-aparece (ver nota arriba), usa esta lista solo como agenda de lo que falta,
-sin columna de estado.
+## Paso 2 — Armar el contenido
 
-## Automatización con Cassius (apartado destacado)
+Cada archivo de referencia trae la estructura exacta de tablas, el tono
+esperado y las variables `{{...}}` a reemplazar. Reemplaza siempre todas las
+variables con datos reales — nunca dejes un `{{placeholder}}` sin resolver en
+el borrador final. Recordá convertir todo a HTML real (ver sección de
+arriba) antes de crear el draft.
 
-Igual que en los mails de seguimiento, este bloque va siempre en un apartado
-propio y visible, con los 4 porcentajes que la card 6206 trae ya calculados
-(no hay que calcular nada a mano):
+Para el diccionario completo de variables y de dónde sale cada una, ver
+`references/variables.md`.
 
-| Métrica | Valor |
-|---|---|
-| % de match hechos por Cassius | `{{pct_match_cassius}}` |
-| % de match hechos por el usuario | `{{pct_match_usuario}}` |
-| % de asientos contables hechos por Cassius | `{{pct_asientos_cassius}}` |
-| % de asientos contables hechos manualmente | `{{pct_asientos_manual}}` |
+## Paso 3 — Adjuntos (solo Mail 1)
 
-Fuente (columnas reales de la card 6206 — ver `references/variables.md`):
-`% match cassius`, `% match usuario`, `% asientos cassius`, `% asientos
-manual`.
+El Mail 1 lleva adjunto `onboarding_clay.pptx`. Adjúntalo al crear el borrador
+vía Gmail MCP — si no encuentras el archivo o el MCP no soporta adjuntar en el
+draft, avisa al onboarder en vez de enviar el mail sin el adjunto.
 
-**Regla para dato faltante:** si alguno de estos 4 viene `null` (pasa
-cuando `asientos_contables_totales = 0`, muy común en el Mail 1 porque
-recién arrancó el onboarding), **dejá la celda vacía en la tabla del mail**,
-sin guion ni texto — es a propósito, para que el onboarder la complete a
-mano antes de enviar. Si la empresa no tiene fila todavía en la card 6206
-(nunca se sincronizó), ahí sí es un problema real — decilo explícitamente en
-el mail en vez de dejar el bloque completo vacío sin explicación.
+## Paso 4 — Crear el borrador
 
-**Plantilla HTML de este bloque (no markdown, ver "Formato del cuerpo del
-mail" más abajo):**
+Usa el Gmail MCP para crear un **draft** (nunca `send`) con:
 
-```html
-<h3>Automatización con Cassius</h3>
-<table style="border-collapse: collapse; width: 100%;">
-  <tr>
-    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">Métrica</th>
-    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">Valor</th>
-  </tr>
-  <tr>
-    <td style="border: 1px solid #ddd; padding: 6px;">% de match hechos por Cassius</td>
-    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_match_cassius}}</td>
-  </tr>
-  <tr>
-    <td style="border: 1px solid #ddd; padding: 6px;">% de match hechos por el usuario</td>
-    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_match_usuario}}</td>
-  </tr>
-  <tr>
-    <td style="border: 1px solid #ddd; padding: 6px;">% de asientos contables hechos por Cassius</td>
-    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_asientos_cassius}}</td>
-  </tr>
-  <tr>
-    <td style="border: 1px solid #ddd; padding: 6px;">% de asientos contables hechos manualmente</td>
-    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_asientos_manual}}</td>
-  </tr>
-</table>
-```
+- Para: `{{email_contacto_principal}}`
+- CC: `ob@clay.cl`
+- Asunto y cuerpo según la plantilla del mail correspondiente, en HTML real
+- Firma del onboarder (nombre + cargo; el link de Calendly es el que el
+  onboarder haya indicado — ver decisión pendiente en
+  `references/decisiones_pendientes.md`)
 
-Dejá la celda de `<td>` vacía (sin texto entre las etiquetas) cuando el
-valor sea `null`, tal como indica la regla de arriba.
+Confirma al usuario que el borrador quedó listo y resume qué datos se
+completaron con éxito y cuáles quedaron marcados como "no disponible" o con
+celda vacía a propósito (ver reglas de dato faltante en cada archivo de
+referencia), para que sepa qué revisar antes de enviar.
 
-## Adjunto
+## Cuando algo no calza
 
-Adjunta automáticamente `onboarding_clay.pptx` al crear el draft en Gmail. Es
-obligatorio en este mail — si falla, avisa en vez de omitirlo silenciosamente.
-
-## Estructura del mail
-
-| Campo | Contenido |
-|---|---|
-| Asunto | Minuta reunión de bienvenida — {{nombre_empresa}} |
-| Para | {{email_contacto_principal}} |
-| CC | ob@clay.cl |
-| Saludo | Hola {{nombre_contacto}}, |
-| Cuerpo | Diagnóstico inicial + tabla de próximos pasos (con o sin estado, según disponibilidad) |
-| Bloque Cassius | Automatización con Cassius (apartado destacado) |
-| Bloque grupo | Resumen agregado del grupo — solo si aplica (madre/hijas) |
-| Cierre | "Cualquier duda me avisas. ¡Nos vemos en la próxima reunión!" |
-| Firma | Firma del onboarder (nombre + cargo + Calendly) |
-| Adjunto | onboarding_clay.pptx |
+Esta spec todavía tiene puntos abiertos que Josefa y OPS no han cerrado del
+todo (Calendly por onboarder vs. general, cómo se ingresa el comentario,
+múltiples contactos por cliente). Si el caso concreto que te piden depende
+de una de esas decisiones, dilo explícitamente en vez de asumir en silencio
+— usa el default documentado en `references/decisiones_pendientes.md` pero
+menciona que es un supuesto.
