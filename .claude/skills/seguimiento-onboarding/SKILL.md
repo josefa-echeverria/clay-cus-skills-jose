@@ -1,9 +1,9 @@
 ---
 name: seguimiento-onboarding
-description: "Genera los borradores de seguimiento de onboarding (semana 2, 4 y 6) para TODOS los tickets del onboarder que ejecuta este comando, calculando automáticamente a quién le toca hoy. Pensada para correr manualmente (/seguimiento-onboarding) o de forma desatendida vía cron. Requiere la skill 'onboarding-mails' instalada en el mismo proyecto, además de HubSpot MCP, Clay MCP, clay-dw:product-health y Gmail MCP."
+description: "Genera los borradores de seguimiento de onboarding (semana 2 a 8) para TODOS los tickets del onboarder que ejecuta este comando, calculando automáticamente a quién le toca hoy. Pensada para correr manualmente (/seguimiento-onboarding) o de forma desatendida vía cron. Requiere la skill 'onboarding-mails' instalada en el mismo proyecto, además de HubSpot MCP, Clay MCP, clay-dw:product-health y Gmail MCP."
 ---
 
-# Rutina: seguimiento de onboarding (semana 2/4/6)
+# Rutina: seguimiento de onboarding (semana 2 a 8)
 
 Se invoca como `/seguimiento-onboarding [email_onboarder]`. El argumento con
 el email es opcional si Claude ya puede identificar al onboarder por el
@@ -50,18 +50,25 @@ Para cada ticket, calcula los días transcurridos entre `createdate` y hoy:
 | Días transcurridos | Mail que corresponde |
 |---|---|
 | 14 | Semana 2 |
+| 21 | Semana 3 |
 | 28 | Semana 4 |
+| 35 | Semana 5 |
 | 42 | Semana 6 |
+| 49 | Semana 7 |
+| 56 | Semana 8 |
+
+La semana 1 se asume cubierta por el mail de bienvenida (fuera del alcance
+de esta rutina) — por eso el primer punto de contacto acá es el día 14.
 
 Usa coincidencia **exacta** de día, no un rango — esta rutina está pensada
 para correr una vez al día (manual o por cron), así que el día exacto ya es
 suficiente y evita procesar el mismo cliente dos veces por una ventana
 demasiado ancha.
 
-Ignora los tickets que no calzan exactamente con 14, 28 o 42 días. Si el
-usuario pide explícitamente "generá el de {{cliente}} aunque no le toque
-hoy", trátalo como una ejecución manual puntual y sáltate el filtro de fecha
-solo para ese caso.
+Ignora los tickets que no calzan exactamente con 14, 21, 28, 35, 42, 49 o 56
+días. Si el usuario pide explícitamente "generá el de {{cliente}} aunque no
+le toque hoy", trátalo como una ejecución manual puntual y sáltate el filtro
+de fecha solo para ese caso.
 
 ## 3. Evitar duplicados
 
@@ -73,17 +80,15 @@ y esa semana específica. Si ya existe uno, no crees otro — repórtalo como
 ## 4. Generar cada borrador
 
 Para cada ticket que sí corresponde hoy (y no tiene draft duplicado), sigue
-el flujo de **Mails 2, 3 y 4** de la skill `onboarding-mails`
+el flujo de **Mails 2 a 8** de la skill `onboarding-mails`
 (`references/mails_seguimiento.md`), sin saltarte ningún paso de esa skill:
 fuentes de datos, fallback de product health, tabla de avance, tabla de
 próximos pasos y sugerencias de uso.
 
-La sección "Trigger de envío" de esa skill todavía describe el cálculo en
-base a `fecha_inicio_ob` (así estaba en la spec original de Josefa). Esta
-rutina reemplaza esa parte: el número de semana ya viene decidido por el
-paso 2 de acá arriba, usando `createdate`. No vuelvas a calcular la semana
-con `fecha_inicio_ob` al entrar a `onboarding-mails` — usa el `{{n}}` que ya
-determinaste.
+La sección "Trigger de envío" de esa skill ya refleja la correspondencia
+días→semana completa (2 a 8) usando `createdate`. El número de semana `{{n}}`
+ya viene decidido por el paso 2 de acá arriba — no vuelvas a calcularlo al
+entrar a `onboarding-mails`.
 
 **Comentario libre del onboarder:**
 - Si estás corriendo de forma **interactiva** (hay una persona respondiendo
@@ -106,12 +111,49 @@ con:
 
 | Cliente | Semana | Resultado |
 |---|---|---|
-| {{nombre_empresa}} | 2/4/6 | Borrador creado / Ya existía / Sin dato de X (marcado en el borrador) / Error: {{detalle}} |
+| {{nombre_empresa}} | 2–8 | Borrador creado / Ya existía / Sin dato de X (marcado en el borrador) / Error: {{detalle}} |
 
 Y una lista aparte de "Pendientes para revisar antes de enviar" (comentarios
 sin completar, datos marcados como no disponibles, adjuntos que fallaron,
 etc.), para que el onboarder sepa exactamente qué mirar antes de aprobar los
 borradores.
+
+## 6. Notificar el resumen en Slack
+
+Además de mostrar el resumen en el chat/log, envía el mismo resumen al canal
+de Slack **`#team-onboarding`** usando el MCP de Slack — esto aplica
+**siempre**, corras la rutina manual o por cron, y **siempre** (no solo
+cuando hay errores), para que el equipo sepa qué borradores quedaron
+esperando revisión sin depender de que alguien entre a mirar el log.
+
+Formato del mensaje (Markdown de Slack, no HTML):
+
+```
+:memo: *Seguimiento de onboarding — {{onboarder}} — {{fecha}}*
+
+| Cliente | Semana | Resultado |
+|---|---|---|
+| {{nombre_empresa}} | {{n}} | {{resultado}} |
+...
+
+*Pendientes para revisar antes de enviar:*
+- {{item_pendiente_1}}
+- {{item_pendiente_2}}
+
+(o "Sin pendientes 🎉" si la lista de pendientes está vacía)
+```
+
+Si ningún ticket calzó con el día exacto (paso 2 no encontró a nadie a quien
+tocarle hoy), igual manda el mensaje aclarando "Hoy no correspondía generar
+ningún seguimiento para {{onboarder}}" — así el canal confirma que la rutina
+corrió, en vez de quedar en silencio y generar la duda de si falló o
+simplemente no había nada que hacer.
+
+Si el envío a Slack falla (canal no encontrado, sin permisos, etc.), no
+detengas ni reviertas la creación de los borradores en Gmail — esos ya están
+creados y son el entregable principal. Reporta el fallo del envío a Slack
+como parte del resumen que le devuelves a quien invocó la rutina (persona o
+log de cron).
 
 ## Notas para correrla por cron (opcional)
 
@@ -121,8 +163,9 @@ Si se agenda con cron usando `claude --print`, conviene:
   depender de detectar el usuario conectado en una sesión no interactiva).
 - Correrla una vez al día — no más seguido, porque el filtro de día exacto
   del paso 2 asume una sola pasada diaria.
-- Redirigir la salida a un log y avisar al canal del equipo si el resumen
-  final contiene algún "Error".
-- Limitar las herramientas permitidas a las de HubSpot, Clay, clay-dw y
-  Gmail (drafts), para que la ejecución desatendida no pueda tocar nada fuera
-  de este flujo.
+- Redirigir la salida a un log — el aviso al equipo ya no depende solo del
+  log, porque el paso 6 manda el resumen a `#team-onboarding` en cada
+  corrida (haya o no errores).
+- Limitar las herramientas permitidas a las de HubSpot, Clay, clay-dw,
+  Gmail (drafts) y Slack (mensajes), para que la ejecución desatendida no
+  pueda tocar nada fuera de este flujo.
