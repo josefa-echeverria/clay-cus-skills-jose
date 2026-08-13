@@ -1,8 +1,8 @@
-# Mails 2, 3 y 4 — Seguimiento Semana 2, 4 y 6
+# Mails 2 a 8 — Seguimiento Semana 2 a 8
 
-Misma estructura base para los tres; el contenido evoluciona con el avance
-real del cliente. No copies el mail anterior — vuelve a consultar el
-dashboard cada vez, porque el objetivo es mostrar avance real, no repetir
+Misma estructura base para las siete instancias; el contenido evoluciona con
+el avance real del cliente. No copies el mail anterior — vuelve a consultar
+el dashboard cada vez, porque el objetivo es mostrar avance real, no repetir
 texto.
 
 ## Fuente de datos: SOLO el dashboard de Metabase (julio 2026)
@@ -241,9 +241,21 @@ adopción. Sigue este formato:
 
 El número de semana lo calcula quien invoca esta skill (por ejemplo la
 rutina `seguimiento-onboarding` de Claude Code) a partir de `createdate` del
-ticket en HubSpot — 14/28/42 días. Si te piden generar un mail de
-seguimiento directo en el chat sin pasar por esa rutina, calculalo vos mismo
-con la misma lógica, o usá la semana que el usuario te indique explícitamente.
+ticket en HubSpot, usando esta correspondencia días→semana:
+
+| Días transcurridos | Semana |
+|---|---|
+| 14 | 2 |
+| 21 | 3 |
+| 28 | 4 |
+| 35 | 5 |
+| 42 | 6 |
+| 49 | 7 |
+| 56 | 8 |
+
+Si te piden generar un mail de seguimiento directo en el chat sin pasar por
+esa rutina, calculalo vos mismo con la misma lógica (día exacto, no rango), o
+usá la semana que el usuario te indique explícitamente.
 
 Nota: la card 6206 también trae un campo `semana_onboarding` ya calculado
 por el dashboard — puede servir como referencia cruzada si el número que
