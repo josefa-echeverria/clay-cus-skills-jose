@@ -111,14 +111,6 @@ y `{{tarea}}` (ver `references/mails_seguimiento.md`, sección 4) — no
 están pendientes por definición. Si no queda ninguna tarea pendiente, esa
 sección se reemplaza por espacio para el comentario del onboarder.
 
-## Health / product health (sin cambios)
-
-| Variable | Fuente |
-|---|---|
-| `{{health_pct}}` / `{{health_category}}` | `clay-dw:product-health` |
-| `{{modulos_criticos}}` | `clay-dw:product-health` — top 3 `adopt_pct` más bajo |
-| `{{sugerencias_uso}}` | Generado por Claude a partir de lo anterior |
-
 ## Manual
 
 | Variable | Origen |

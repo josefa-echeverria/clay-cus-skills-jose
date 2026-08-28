@@ -40,27 +40,12 @@ siempre; volver a inspeccionar el dashboard 607 si algo no calza.
 2. Ejecutar `execute_card` para los cards 6206 y 6207 (dashboard 607),
    filtrar ambos resultados por la empresa (y por el resto del grupo, si
    corresponde).
-3. Consultar `clay-dw:product-health` para el health score y adopción por
-   módulo (esto es independiente del dashboard 607 y sigue funcionando
-   normal).
-4. Armar la tabla de próximos pasos a partir de las filas de la card 6207
+3. Armar la tabla de próximos pasos a partir de las filas de la card 6207
    para esa empresa (una fila del resultado = una fila de la tabla del
    mail).
-5. Generar sugerencias personalizadas basadas en los módulos con adopción más
-   baja (top 3, desde `clay-dw:product-health`).
 
-## Fallback si no hay datos de product health
-
-Si el cliente es muy nuevo o no tiene actividad registrada en LogRocket,
-`clay-dw:product-health` puede no devolver nada. En ese caso no dejes el
-bloque de sugerencias vacío ni inventes números — usa este texto tal cual:
-
-> "Aún estamos registrando tu actividad en la plataforma. Mientras tanto,
-> aquí van tus próximos pasos pendientes."
-
-Y sáltate la tabla de sugerencias de uso (sección 5 más abajo) para ese mail.
-Esto es distinto de no encontrar la empresa en el dashboard 607 — si pasa
-eso, es un problema real que hay que reportar, no un fallback esperado.
+No hace falta consultar `clay-dw:product-health` ni ningún dato de adopción
+por módulo para este mail — se sacó del flujo porque no es necesario.
 
 ## 0. Detectar estructura de grupo (empresa madre / hijas)
 
@@ -284,16 +269,6 @@ placeholder para que lo complete antes de enviar (mismo criterio que
 `{{comentario_onboarder}}` en `references/variables.md` — no lo redactes
 vos en su nombre).
 
-## 5. Sugerencias de uso (product health)
-
-Toma los 3 módulos con `adopt_pct` más bajo desde `clay-dw:product-health` y
-genera un texto personalizado por cada uno, cruzando la señal de uso vs.
-adopción. Sigue este formato:
-
-| Módulo | Señal del dato | Nivel adopción | Sugerencia de uso |
-|---|---|---|---|
-| {{modulo}} | {{uso_pct}} pero adopción {{adopt_pct}}. {{interpretación breve}} | 🔴/🟡/🟢 {{categoría}} ({{adopt_pct}}) | {{acción concreta a sugerir}} |
-
 ## Trigger de envío (cómo se decide la semana)
 
 El número de semana lo calcula quien invoca esta skill (por ejemplo la
@@ -343,6 +318,5 @@ simples (bordes finos, encabezado en negrita) antes de pasarlo al Gmail MCP.
 | Bloque 2 | Automatización con Cassius (apartado destacado) |
 | Bloque 3 | Resumen agregado del grupo — solo si aplica (madre/hijas) |
 | Bloque 4 | Próximos pasos pendientes (card 6207, solo `estado = Pendiente`) — o espacio para comentario del onboarder si no queda ninguna |
-| Bloque 5 | Sugerencias de uso (top 3 módulos) o texto de fallback |
 | Cierre | Invitación a la siguiente reunión de seguimiento + Calendly |
 | Firma | Onboarder (nombre + cargo) |
