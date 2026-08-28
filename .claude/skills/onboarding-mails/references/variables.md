@@ -101,8 +101,15 @@ completa en `references/mails_seguimiento.md`, sección 2.
 |---|---|
 | `{{area}}` | `area` |
 | `{{tarea}}` | `tarea` |
-| `{{estado}}` | `estado` (`Ok`/`Pendiente` → traducir a `✅ Ok` / `⏳ Pendiente`) |
-| `{{fecha_completado}}` | `fecha_completado` (puede ser `null` → mostrar `—`) |
+| `{{estado}}` | `estado` (`Ok`/`Pendiente` → traducir a `✅ Ok` / `⏳ Pendiente`) — solo se usa en el Mail 1, que muestra el checklist completo |
+| `{{fecha_completado}}` | `fecha_completado` (puede ser `null` → mostrar `—`) — solo se usa en el Mail 1, mismo motivo |
+
+En los mails de seguimiento (2 a 8), la sección "Próximos pasos pendientes"
+filtra la card 6207 a solo `estado = Pendiente` y muestra nada más `{{area}}`
+y `{{tarea}}` (ver `references/mails_seguimiento.md`, sección 4) — no
+`{{estado}}` ni `{{fecha_completado}}`, porque en ese bloque todas las filas
+están pendientes por definición. Si no queda ninguna tarea pendiente, esa
+sección se reemplaza por espacio para el comentario del onboarder.
 
 ## Health / product health (sin cambios)
 

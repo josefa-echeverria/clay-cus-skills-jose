@@ -254,19 +254,35 @@ mail" más abajo):**
 </table>
 ```
 
-## 4. Tabla de próximos pasos
+## 4. Próximos pasos pendientes
 
-Se construye directamente de las filas de la card 6207 para esa empresa —
-no la inventes ni reutilices la lista fija de versiones anteriores de esta
-skill. Cada fila del resultado (`area`, `tarea`, `estado`, `fecha_completado`)
-es una fila de esta tabla. Traducí `estado`:
+Se construye directamente de las filas de la card 6207 para esa empresa,
+filtrando **solo** las que tienen `estado = Pendiente` — no incluyas las que
+ya están en `Ok`. Este bloque es exclusivamente para mostrarle al cliente lo
+que le falta, no un resumen de todo el checklist (eso ya está cubierto por
+`{{tareas_ok}}` / `{{tareas_pendientes}}` en la sección 1).
 
-- `Ok` → `✅ Ok`
-- `Pendiente` → `⏳ Pendiente`
+Como todas las filas mostradas están pendientes por definición, la tabla
+queda con 2 columnas (no hace falta repetir "⏳ Pendiente" en cada fila ni
+una columna `Completado`, que siempre sería `null` para una tarea
+pendiente):
 
-| Área | Tarea | Estado | Completado |
-|---|---|---|---|
-| `{{area}}` | `{{tarea}}` | `{{estado}}` | `{{fecha_completado}}` (o `—` si es null) |
+| Área | Tarea |
+|---|---|
+| `{{area}}` | `{{tarea}}` |
+
+**Si no queda ninguna tarea pendiente** (todas las filas de la card 6207
+para esa empresa están en `Ok`): no muestres una tabla vacía. Dejá ese
+espacio del mail para el comentario libre del onboarder en su lugar —
+escribí algo como:
+
+> 🎉 ¡{{nombre_empresa}} ya completó todo el checklist de onboarding!
+> [Espacio para el comentario del onboarder]
+
+y avisale al usuario en el resumen final que ese texto quedó como
+placeholder para que lo complete antes de enviar (mismo criterio que
+`{{comentario_onboarder}}` en `references/variables.md` — no lo redactes
+vos en su nombre).
 
 ## 5. Sugerencias de uso (product health)
 
@@ -326,7 +342,7 @@ simples (bordes finos, encabezado en negrita) antes de pasarlo al Gmail MCP.
 | Bloque 1 | Tabla de avance (card 6206) |
 | Bloque 2 | Automatización con Cassius (apartado destacado) |
 | Bloque 3 | Resumen agregado del grupo — solo si aplica (madre/hijas) |
-| Bloque 4 | Tabla de próximos pasos (card 6207) |
+| Bloque 4 | Próximos pasos pendientes (card 6207, solo `estado = Pendiente`) — o espacio para comentario del onboarder si no queda ninguna |
 | Bloque 5 | Sugerencias de uso (top 3 módulos) o texto de fallback |
 | Cierre | Invitación a la siguiente reunión de seguimiento + Calendly |
 | Firma | Onboarder (nombre + cargo) |
