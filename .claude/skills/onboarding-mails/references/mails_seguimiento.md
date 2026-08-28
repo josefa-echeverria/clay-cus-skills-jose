@@ -196,22 +196,62 @@ valor sea `null`, tal como indica la regla de arriba.
 ## 3. Resumen agregado del grupo (solo si hay empresa madre/hijas)
 
 Esta sección solo aparece si el Paso 0 detectó una estructura de grupo.
-Una fila por cada empresa del grupo (incluida la que dispara el mail),
-usando `pct_avance` de la card 6206 y las tareas en estado `Pendiente` de la
-card 6207 para cada RUT del grupo:
+El mail se sigue armando centrado en la empresa que dispara el envío (eso no
+cambia — ver Paso 0), pero esta tabla es la única oportunidad de mostrarle al
+onboarder cómo va **cada** empresa del grupo, así que lleva más que el
+avance total: también los 2 indicadores de automatización con Cassius más
+relevantes (match y asientos), para que no haya que abrir el dashboard aparte
+a chequear si la hija está usando la plataforma o no.
 
-| Empresa | % Avance | Tareas pendientes |
-|---|---|---|
-| `{{nombre_empresa}}` | `{{pct_avance}}%` | `{{tareas_pendientes_lista}}` |
+Una fila por cada empresa del grupo (incluida la que dispara el mail), con
+estos datos de la card 6206 y la card 6207 para cada RUT del grupo:
 
+| Empresa | % Avance | Tareas (Ok/Pend.) | % Match Cassius | % Asientos Cassius | Tareas pendientes |
+|---|---|---|---|---|---|
+| `{{nombre_empresa}}` | `{{pct_avance}}%` | `{{tareas_ok}}` / `{{tareas_pendientes}}` | `{{pct_match_cassius}}` | `{{pct_asientos_cassius}}` | `{{tareas_pendientes_lista}}` |
+
+- `{{pct_avance}}`, `{{tareas_ok}}`, `{{tareas_pendientes}}`, `{{pct_match_cassius}}`
+  y `{{pct_asientos_cassius}}` salen de la fila de la card 6206 para el RUT de
+  esa empresa (mismas columnas que en las secciones 1 y 2, pero leídas para
+  cada empresa del grupo en vez de solo la que dispara el mail).
+- `{{pct_match_cassius}}` / `{{pct_asientos_cassius}}`: si vienen `null` para
+  esa empresa (pasa cuando `asientos_contables_totales = 0`, común en
+  empresas del grupo recién incorporadas), dejá la celda vacía — misma regla
+  que en la sección 2, no pongas `—` ni texto.
 - `{{tareas_pendientes_lista}}` = nombres de tarea (sin el área) de la card
   6207 con `estado = Pendiente` para esa empresa, unidos con `" · "`. Si no
   tiene ninguna pendiente, escribí "Sin tareas pendientes".
 - Ordená la tabla con la empresa madre primero y las hijas debajo, en el
   mismo orden en que aparecen en `rut_empresas_hijas`.
-- Si una empresa del grupo no aparece en la card 6206, poné `—` en % Avance
-  y "Sin dato en el dashboard" en Tareas pendientes — no la excluyas de la
-  tabla.
+- Si una empresa del grupo no aparece en la card 6206, poné `—` en % Avance,
+  Tareas (Ok/Pend.), % Match Cassius y % Asientos Cassius, y "Sin dato en el
+  dashboard" en Tareas pendientes — no la excluyas de la tabla.
+
+**Plantilla HTML de esta tabla (no markdown, ver "Formato del cuerpo del
+mail" más abajo):**
+
+```html
+<h3>Resumen del grupo</h3>
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">Empresa</th>
+    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">% Avance</th>
+    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">Tareas (Ok/Pend.)</th>
+    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">% Match Cassius</th>
+    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">% Asientos Cassius</th>
+    <th style="border: 1px solid #ddd; padding: 6px; text-align: left; background:#f5f5f5;">Tareas pendientes</th>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{nombre_empresa}}</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_avance}}%</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{tareas_ok}} / {{tareas_pendientes}}</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_match_cassius}}</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{pct_asientos_cassius}}</td>
+    <td style="border: 1px solid #ddd; padding: 6px;">{{tareas_pendientes_lista}}</td>
+  </tr>
+  <!-- una <tr> más por cada empresa adicional del grupo -->
+</table>
+```
 
 ## 4. Tabla de próximos pasos
 

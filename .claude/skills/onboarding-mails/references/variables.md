@@ -31,7 +31,16 @@ A partir de estos campos se deriva, para el resumen agregado (ver
 | `{{empresas_del_grupo}}` | Lista de RUT: la madre + todas las hijas de `rut_empresas_hijas` |
 | `{{nombre_empresa}}` (por fila del agregado) | Cruce de cada RUT del grupo contra `nombre_empresa` en la card 6206 |
 | `{{pct_avance}}` (por fila del agregado) | `pct_avance` de la card 6206 para ese RUT — `—` si no aparece |
+| `{{tareas_ok}}` / `{{tareas_pendientes}}` (por fila del agregado) | `tareas_ok` / `tareas_pendientes` de la card 6206 para ese RUT — `—` si no aparece |
+| `{{pct_match_cassius}}` (por fila del agregado) | `% match cassius` de la card 6206 para ese RUT — celda vacía (no `—`) si viene `null` |
+| `{{pct_asientos_cassius}}` (por fila del agregado) | `% asientos cassius` de la card 6206 para ese RUT — celda vacía (no `—`) si viene `null` |
 | `{{tareas_pendientes_lista}}` | Nombres de tarea (sin área) con `estado = Pendiente` en la card 6207 para ese RUT, unidos con `" · "` |
+
+Nota: estas dos últimas (`pct_match_cassius`, `pct_asientos_cassius`) son las
+mismas columnas que usa el bloque "Automatización con Cassius" (sección 2 de
+`mails_seguimiento.md`), solo que acá se leen una vez por cada empresa del
+grupo en vez de solo para la que dispara el mail — así el resumen agregado
+muestra el nivel de automatización de la hija, no solo su % de avance.
 
 ## Avance — Dashboard 607, card 6206 (`execute_card`, dashboard_id 607, card_id 6206)
 
