@@ -24,14 +24,16 @@ dispara el envío:
 | `{{parent_company_id}}` | `hs_parent_company_id` (asociación nativa) — respaldo/cruce, no reemplaza a los dos anteriores |
 
 A partir de estos campos se deriva, para el resumen agregado (ver
-`references/mails_seguimiento.md`, sección 3):
+`references/mails_seguimiento.md`, sección 3) — **esta sección reemplaza
+por completo a la sección 2 (Automatización con Cassius + tareas
+pendientes de empresa sin grupo); nunca van las dos en el mismo mail**:
 
 | Variable | Cómo se obtiene |
 |---|---|
-| `{{empresas_del_grupo}}` | Lista de RUT: la madre + todas las hijas de `rut_empresas_hijas` |
+| `{{empresas_del_grupo}}` | Lista de RUT: la madre + todas las hijas de `rut_empresas_hijas` (o vía `hs_parent_company_id` / cruce con 6301-6230 si el campo de texto está vacío — ver nota de Foil en `mails_seguimiento.md` sección 0) |
 | `{{nombre_empresa}}` (por fila del agregado) | Cruce de cada RUT del grupo contra `nombre_empresa` en la card 6206 |
 | `{{pct_avance}}` (por fila del agregado) | `pct_avance` de la card 6206 para ese RUT — `—` si no aparece |
-| `{{tareas_pendientes_lista}}` | Nombres de tarea (sin área) con `estado = Pendiente` en la card 6207 para ese RUT, unidos con `" · "` |
+| `{{tareas_pendientes_punteo}}` | Punteo (lista `<ul><li>`) con **solo** los nombres de tarea en `estado = Pendiente`. Madre: de la card 6207, filtrada por su RUT. Hijas: de la card **6230** (checklist de grupo, excluye a la madre), filtrada por `nombre_empresa` de esa hija. "Sin tareas pendientes" si no tiene ninguna; "Sin dato en el dashboard" si la hija no aparece en 6230. |
 | `{{pct_match_cassius_hija}}` | Madre: `% match cassius` de su propia fila en la card 6206. Hijas: `porcentaje_match_cassius` de la card **6301** (única fuente — la card 6206 no suele traer este dato para hijas), filtrada por el nombre de la madre/grupo. Vacío si no hay dato (ver regla de `null`). |
 | `{{pct_match_usuario_hija}}` | Igual que la anterior, con `% match usuario` (madre, card 6206) / `porcentaje_match_usuario` (hijas, card 6301) |
 | `{{pct_asientos_cassius_hija}}` | Igual, con `% asientos cassius` (madre, card 6206) / `porcentaje_asientos_cassius` (hijas, card 6301) |
@@ -98,10 +100,28 @@ se necesitan a futuro. Si una hija no tiene movimientos o asientos en el
 período, los porcentajes vienen `null` — dejar la celda vacía, misma regla
 que la sección 2.
 
-## Automatización con Cassius — apartado destacado en todos los mails
+## Checklist de grupo (hijas) — card 6230 (`analytics.clay.cl/question/6230`)
 
-Van en un apartado propio y visible en los 4 mails (bienvenida + los 3 de
-seguimiento), no solo en la tabla general de avance:
+Solo se usa en el resumen agregado del grupo (sección 3 de
+`mails_seguimiento.md`), para las tareas pendientes de las empresas
+**hijas** — la madre usa la card 6207 de siempre. Colección "Onboarding" en
+Metabase, misma limitación que 6301: `execute_card` no acepta el parámetro
+`nombre_empresa` (= nombre de la madre/grupo) para esta card, así que se
+ejecuta vía `execute_query` con el SQL exacto (ver
+`references/mails_seguimiento.md`, sección "Cómo ejecutar la card 6230").
+La card excluye a la madre (`rol <> 'Madre'`).
+
+| Variable | Columna en card 6230 |
+|---|---|
+| `{{tarea}}` (filtrado a `estado = 'Pendiente'`) | `tarea`, agrupado por `nombre_empresa` para armar el punteo de cada hija |
+
+## Automatización con Cassius — apartado destacado
+
+En el **Mail 1** (bienvenida) va siempre. En los **mails de seguimiento
+(2-8)** va **solo si la empresa NO pertenece a un grupo** — si pertenece,
+estos mismos 4 porcentajes ya están en la fila de esa empresa dentro del
+resumen agregado del grupo (sección 3), y no hay que repetirlos (ver
+`references/mails_seguimiento.md`, sección 2).
 
 | Variable | Fuente |
 |---|---|
@@ -116,20 +136,18 @@ completa en `references/mails_seguimiento.md`, sección 2.
 
 ## Checklist / próximos pasos — Dashboard 607, card 6207 (`execute_card`, dashboard_id 607, card_id 6207)
 
+En el **Mail 1** se usa para la tabla completa de próximos pasos (las 11
+tareas, con o sin estado). En los **mails de seguimiento (2-8)** ya no hay
+tabla completa — se usa solo para armar el punteo de tareas pendientes
+(`estado = 'Pendiente'`) de la empresa disparadora, sea de la sección 2
+(sin grupo) o de la fila de la madre en la sección 3 (con grupo).
+
 | Variable | Columna en card 6207 |
 |---|---|
 | `{{area}}` | `area` |
 | `{{tarea}}` | `tarea` |
-| `{{estado}}` | `estado` (`Ok`/`Pendiente` → traducir a `✅ Ok` / `⏳ Pendiente`) |
-| `{{fecha_completado}}` | `fecha_completado` (puede ser `null` → mostrar `—`) |
-
-## Health / product health (sin cambios)
-
-| Variable | Fuente |
-|---|---|
-| `{{health_pct}}` / `{{health_category}}` | `clay-dw:product-health` |
-| `{{modulos_criticos}}` | `clay-dw:product-health` — top 3 `adopt_pct` más bajo |
-| `{{sugerencias_uso}}` | Generado por Claude a partir de lo anterior |
+| `{{estado}}` | `estado` (`Ok`/`Pendiente` → traducir a `✅ Ok` / `⏳ Pendiente`; en mails de seguimiento, filtrar directamente a `Pendiente` para el punteo, sin traducir) |
+| `{{fecha_completado}}` | `fecha_completado` (puede ser `null` → mostrar `—`; solo se usa en el Mail 1) |
 
 ## Manual
 
