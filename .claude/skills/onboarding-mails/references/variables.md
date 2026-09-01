@@ -32,6 +32,10 @@ A partir de estos campos se deriva, para el resumen agregado (ver
 | `{{nombre_empresa}}` (por fila del agregado) | Cruce de cada RUT del grupo contra `nombre_empresa` en la card 6206 |
 | `{{pct_avance}}` (por fila del agregado) | `pct_avance` de la card 6206 para ese RUT — `—` si no aparece |
 | `{{tareas_pendientes_lista}}` | Nombres de tarea (sin área) con `estado = Pendiente` en la card 6207 para ese RUT, unidos con `" · "` |
+| `{{pct_match_cassius_hija}}` | Madre: `% match cassius` de su propia fila en la card 6206. Hijas: `porcentaje_match_cassius` de la card **6301** (única fuente — la card 6206 no suele traer este dato para hijas), filtrada por el nombre de la madre/grupo. Vacío si no hay dato (ver regla de `null`). |
+| `{{pct_match_usuario_hija}}` | Igual que la anterior, con `% match usuario` (madre, card 6206) / `porcentaje_match_usuario` (hijas, card 6301) |
+| `{{pct_asientos_cassius_hija}}` | Igual, con `% asientos cassius` (madre, card 6206) / `porcentaje_asientos_cassius` (hijas, card 6301) |
+| `{{pct_asientos_usuario_hija}}` | Igual, con `% asientos manual` (madre, card 6206) / `porcentaje_asientos_usuario` (hijas, card 6301) |
 
 ## Avance — Dashboard 607, card 6206 (`execute_card`, dashboard_id 607, card_id 6206)
 
@@ -69,6 +73,30 @@ Las columnas viejas `pct_conciliacion_cassius_auto` y
 `pct_conciliacion_usuario` **ya no existen** — fueron reemplazadas por
 `% match cassius` y `% match usuario` (más las columnas de cantidad `match
 cassius (n)` / `match usuario (n)`).
+
+## Conciliación de empresas hijas — card 6301 (`analytics.clay.cl/question/6301`)
+
+Solo se usa en el resumen agregado del grupo (sección 3), para las filas de
+las empresas **hijas** — la madre usa directo su propia fila de la card
+6206. Colección "Onboarding" en Metabase, agregada en septiembre 2026
+(IAD-255). Requiere el parámetro `nombre_empresa` = nombre de la
+madre/grupo (no el RUT) — como `execute_card` no soporta parámetros para
+esta card, se ejecuta vía `execute_query` con el SQL exacto (ver
+`references/mails_seguimiento.md`, sección "Cómo ejecutar la card 6301").
+
+| Variable | Columna en card 6301 |
+|---|---|
+| `{{pct_match_cassius_hija}}` | `porcentaje_match_cassius` |
+| `{{pct_match_usuario_hija}}` | `porcentaje_match_usuario` |
+| `{{pct_asientos_cassius_hija}}` | `porcentaje_asientos_cassius` |
+| `{{pct_asientos_usuario_hija}}` | `porcentaje_asientos_usuario` |
+
+La card también trae `match_cassius_n`, `match_usuario_n`,
+`asientos_totales`, `asientos_cassius`, `asientos_usuario` (cantidades, no
+porcentajes) — no se usan en el mail por ahora, pero quedan disponibles si
+se necesitan a futuro. Si una hija no tiene movimientos o asientos en el
+período, los porcentajes vienen `null` — dejar la celda vacía, misma regla
+que la sección 2.
 
 ## Automatización con Cassius — apartado destacado en todos los mails
 

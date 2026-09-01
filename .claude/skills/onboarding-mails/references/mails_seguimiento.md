@@ -21,6 +21,7 @@ Usa la herramienta `execute_card` de Metabase Clay con `dashboard_id = 607`:
 |---|---|---|
 | Onboarding - Avance y Conciliación por Empresa | **6206** | Una fila por empresa: `rut_empresa`, `nombre_empresa`, `semana_onboarding`, `onboarder_asignado`, `pct_avance`, `tareas_ok`, `tareas_pendientes`, `movimientos_totales`, `movimientos_tarjeta`, `match cassius (n)`, `match usuario (n)`, `movimientos_sin_match`, `% match cassius`, `% match usuario`, `tc_medios_pago_sin_match`, `asientos_contables_totales`, `asientos_por_cassius`, `asientos_manuales`, `% asientos cassius`, `% asientos manual`, `dtes_por_cobrar_sin_contabilizar`, `dtes_por_pagar_sin_contabilizar`. **Columnas con espacio en el nombre — van entre comillas/tal cual las devuelve `execute_card`.** |
 | Checklist - Detalle por Empresa y Tarea | **6207** | Una fila por tarea: `rut_empresa`, `nombre_empresa`, `onboarder_asignado`, `area`, `tarea`, `estado` (`Ok`/`Pendiente`), `fecha_completado` |
+| Avance y Conciliación — Empresas Hijas (Grupo) | **6301** | **Solo aplica a empresas hijas dentro de una estructura de grupo (sección 3 más abajo).** Una fila por empresa hija del grupo: `nombre_empresa`, `match_cassius_n`, `match_usuario_n`, `porcentaje_match_cassius`, `porcentaje_match_usuario`, `asientos_totales`, `asientos_cassius`, `asientos_usuario`, `porcentaje_asientos_cassius`, `porcentaje_asientos_usuario`. Vive en la colección "Onboarding" de Metabase (`analytics.clay.cl/question/6301-...`) — se agregó en septiembre 2026 (IAD-255) porque las hijas suelen no tener fila propia en la card 6206, así que su % de conciliación no se podía mostrar hasta ahora. |
 
 **Ninguno de los dos cards acepta filtro de empresa desde `execute_card`**
 — ambos devuelven todas las empresas en onboarding de una vez (~18 filas en
@@ -39,7 +40,9 @@ siempre; volver a inspeccionar el dashboard 607 si algo no calza.
    (ver sección "0. Detectar estructura de grupo" más abajo).
 2. Ejecutar `execute_card` para los cards 6206 y 6207 (dashboard 607),
    filtrar ambos resultados por la empresa (y por el resto del grupo, si
-   corresponde).
+   corresponde). Si es una empresa madre con hijas, además correr la card
+   6301 para obtener el % de conciliación de cada hija (ver sección 0 y
+   sección 3 más abajo).
 3. Consultar `clay-dw:product-health` para el health score y adopción por
    módulo (esto es independiente del dashboard 607 y sigue funcionando
    normal).
@@ -91,13 +94,68 @@ Si detectás una estructura de grupo (madre + una o más hijas):
 2. Ejecutá `execute_card` (card 6206) una sola vez para todo el grupo — ya
    trae todas las empresas de onboarding — y filtrá localmente por esos RUT
    (comparación case-insensitive, igual que con `nombre_empresa`).
-3. El mail se sigue armando centrado en la empresa puntual que dispara el
+3. Ejecutá también la card **6301** ("Avance y Conciliación — Empresas
+   Hijas (Grupo)") para traer el % de conciliación (match y asientos) de
+   cada hija — este dato normalmente **no** está en la card 6206 para las
+   hijas, así que es la única fuente para completarlo. Ver "Cómo ejecutar la
+   card 6301" más abajo (el tool `execute_card` no soporta pasarle
+   parámetros, así que hay que correrla con `execute_query`).
+4. El mail se sigue armando centrado en la empresa puntual que dispara el
    envío (madre o hija) — las secciones 1, 2 y 4 usan sus propios datos,
    como siempre. La sección 3 (resumen agregado) es la única que junta a
    **todas** las empresas del grupo.
-4. Si alguna empresa del grupo no aparece todavía en la card 6206 (por
+5. Si alguna empresa del grupo no aparece todavía en la card 6206 (por
    ejemplo, recién conectada), incluila igual en la tabla agregada con `—`
-   en las columnas que falten — no la omitas ni la saltes en silencio.
+   en las columnas de % Avance / tareas pendientes que falten — no la
+   omitas ni la saltes en silencio. Lo mismo si no aparece en la card 6301:
+   dejá vacíos los 4 porcentajes de conciliación de esa fila (misma regla de
+   dato faltante que la sección 2).
+
+### Cómo ejecutar la card 6301 (parámetro `nombre_empresa` = nombre de la madre/grupo)
+
+La card 6301 vive en la colección "Onboarding" de Metabase
+(`analytics.clay.cl/question/6301-avance-y-conciliacion-empresas-hijas-grupo`)
+y tiene un parámetro obligatorio `nombre_empresa` que en realidad corresponde
+al **nombre del grupo** (el nombre de la empresa madre, tal como aparece en
+`staging_marts.organizations_checklist_grupo.nombre_grupo` — no confundir con
+el RUT). El tool MCP `execute_card` **no acepta parámetros** para cards
+nativas con template tags (falla con "Unrecognized key(s): parameters"), así
+que para esta card puntual hay que usar `execute_query` (database_id 40) con
+el SQL exacto de la card (podés confirmarlo con `get_card` si cambia),
+reemplazando el placeholder por el nombre de la madre entre comillas simples
+— duplicá cualquier comilla simple interna del nombre para no romper la
+consulta:
+
+```sql
+WITH hijas AS (
+  SELECT DISTINCT organization_id, nombre_empresa
+  FROM staging_marts.organizations_checklist_grupo
+  WHERE nombre_grupo = 'NOMBRE_DE_LA_MADRE' AND rol = 'Hija'
+)
+SELECT
+  h.nombre_empresa,
+  SUM(COALESCE(w.movimientos_conciliados_cassius,0)) AS match_cassius_n,
+  SUM(COALESCE(w.movimientos_conciliados_usuario,0)) AS match_usuario_n,
+  ROUND(100.0 * SUM(COALESCE(w.movimientos_conciliados_cassius,0)) / NULLIF(SUM(COALESCE(w.movimientos_conciliados_cassius,0)) + SUM(COALESCE(w.movimientos_conciliados_usuario,0)),0),1) AS porcentaje_match_cassius,
+  ROUND(100.0 * SUM(COALESCE(w.movimientos_conciliados_usuario,0)) / NULLIF(SUM(COALESCE(w.movimientos_conciliados_cassius,0)) + SUM(COALESCE(w.movimientos_conciliados_usuario,0)),0),1) AS porcentaje_match_usuario,
+  COUNT(ae.accounting_entry_id) AS asientos_totales,
+  SUM(CASE WHEN ae.is_cassius THEN 1 ELSE 0 END) AS asientos_cassius,
+  SUM(CASE WHEN NOT ae.is_cassius THEN 1 ELSE 0 END) AS asientos_usuario,
+  ROUND(100.0 * SUM(CASE WHEN ae.is_cassius THEN 1 ELSE 0 END) / NULLIF(COUNT(ae.accounting_entry_id),0),1) AS porcentaje_asientos_cassius,
+  ROUND(100.0 * SUM(CASE WHEN NOT ae.is_cassius THEN 1 ELSE 0 END) / NULLIF(COUNT(ae.accounting_entry_id),0),1) AS porcentaje_asientos_usuario
+FROM hijas h
+LEFT JOIN staging.movements_reconciliation_weekly_by_movement_date w
+  ON w.organization_id = h.organization_id AND w.week_start >= '2026-01-01' AND w.week_start < '2027-01-01'
+LEFT JOIN staging.accounting_entries ae
+  ON ae.organization_id = h.organization_id AND ae.created_at >= '2026-01-01' AND ae.created_at < '2027-01-01'
+GROUP BY h.nombre_empresa
+ORDER BY h.nombre_empresa;
+```
+
+Esta excepción (usar `execute_query` en vez de `execute_card`) es solo por
+la limitación del tool MCP con parámetros — sigue siendo el SQL curado de la
+card 6301, no una consulta libre a `sources.*`. Si en el futuro `execute_card`
+soporta parámetros, usalo directo con `card_id: 6301` en su lugar.
 
 ## 1. Tabla de avance de la empresa
 
@@ -196,22 +254,49 @@ valor sea `null`, tal como indica la regla de arriba.
 ## 3. Resumen agregado del grupo (solo si hay empresa madre/hijas)
 
 Esta sección solo aparece si el Paso 0 detectó una estructura de grupo.
-Una fila por cada empresa del grupo (incluida la que dispara el mail),
-usando `pct_avance` de la card 6206 y las tareas en estado `Pendiente` de la
-card 6207 para cada RUT del grupo:
+Una fila por cada empresa del grupo (incluida la que dispara el mail), con
+el avance de checklist **y** el avance de conciliación de cada una — antes
+esta tabla solo traía tareas pendientes; desde septiembre 2026 se agregan
+también los 4 porcentajes de conciliación (mismo criterio que el apartado
+"Automatización con Cassius" de la sección 2, pero por empresa del grupo):
 
-| Empresa | % Avance | Tareas pendientes |
-|---|---|---|
-| `{{nombre_empresa}}` | `{{pct_avance}}%` | `{{tareas_pendientes_lista}}` |
+| Empresa | % Avance | % Match Cassius | % Match Usuario | % Asientos Cassius | % Asientos Usuario | Tareas pendientes |
+|---|---|---|---|---|---|---|
+| `{{nombre_empresa}}` | `{{pct_avance}}%` | `{{pct_match_cassius_hija}}` | `{{pct_match_usuario_hija}}` | `{{pct_asientos_cassius_hija}}` | `{{pct_asientos_usuario_hija}}` | `{{tareas_pendientes_lista}}` |
 
+Fuente de cada columna:
+
+- `{{pct_avance}}` y `{{tareas_pendientes_lista}}` — igual que antes: card
+  6206 (`pct_avance`) y card 6207 (tareas con `estado = Pendiente`,
+  filtradas por el RUT de esa empresa puntual).
+- Los 4 porcentajes de conciliación:
+  - Para la **empresa madre**, ya vienen en su propia fila de la card 6206
+    (`% match cassius`, `% match usuario`, `% asientos cassius`, `% asientos
+    manual` — igual fuente que la sección 2).
+  - Para cada **hija**, la card 6206 normalmente no trae estos datos (las
+    hijas no siempre tienen fila propia ahí). Usá en su lugar la card
+    **6301**, filtrada por el nombre de la empresa madre/grupo (ver "Cómo
+    ejecutar la card 6301" más arriba): `porcentaje_match_cassius` →
+    `{{pct_match_cassius_hija}}`, `porcentaje_match_usuario` →
+    `{{pct_match_usuario_hija}}`, `porcentaje_asientos_cassius` →
+    `{{pct_asientos_cassius_hija}}`, `porcentaje_asientos_usuario` →
+    `{{pct_asientos_usuario_hija}}`.
 - `{{tareas_pendientes_lista}}` = nombres de tarea (sin el área) de la card
   6207 con `estado = Pendiente` para esa empresa, unidos con `" · "`. Si no
   tiene ninguna pendiente, escribí "Sin tareas pendientes".
+
+Reglas de dato faltante:
+
 - Ordená la tabla con la empresa madre primero y las hijas debajo, en el
   mismo orden en que aparecen en `rut_empresas_hijas`.
 - Si una empresa del grupo no aparece en la card 6206, poné `—` en % Avance
   y "Sin dato en el dashboard" en Tareas pendientes — no la excluyas de la
   tabla.
+- Si una hija no aparece en la card 6301 (o el grupo todavía no tiene
+  ninguna hija con movimientos/asientos), dejá vacías sus 4 celdas de
+  porcentaje — no uses `—` ni "sin datos disponibles", misma regla que la
+  sección 2 para los `null`. Esto es distinto de que la hija no aparezca en
+  la card 6206: eso sí se marca con `—` como indica el punto anterior.
 
 ## 4. Tabla de próximos pasos
 
