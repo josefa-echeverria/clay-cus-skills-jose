@@ -12,26 +12,39 @@
 | `{{nombre_onboarder}}` | Propietario del ticket en HubSpot (cruzar contra `onboarder_asignado` del dashboard si hace falta confirmar) |
 | `{{calendly_onboarder}}` | Link Calendly del onboarder (lo indica el onboarder — ver decisión pendiente) |
 
-## Estructura de grupo — HubSpot (companies)
+## Estructura de grupo — Dashboard 607, pestaña "Próximos Pasos"
 
-Antes de armar cualquier mail, revisar estas propiedades de la empresa que
-dispara el envío:
+**✅ Fuente vigente (septiembre 2026):** ya no se detecta con propiedades de
+HubSpot — se detecta y se calcula todo desde la tabla
+`staging_marts.organizations_checklist_grupo`, vía los cards 6230-6234 y
+6301 del dashboard 607, pestaña "Próximos Pasos". Ver el procedimiento
+completo (cómo detectar madre/hija/independiente) en
+`references/mails_seguimiento.md`, sección "0. Detectar estructura de
+grupo", y el historial de por qué se dejó de usar HubSpot en
+`references/decisiones_pendientes.md` (decisión #6).
 
-| Variable | Columna en HubSpot (companies) |
+| Variable | Columna / card de origen |
 |---|---|
-| `{{rut_empresa_madre}}` | `rut_empresa_madre` — si tiene valor, esta empresa es hija |
-| `{{rut_empresas_hijas}}` | `rut_empresas_hijas` — si tiene valor, esta empresa es madre; puede traer varios RUT |
-| `{{parent_company_id}}` | `hs_parent_company_id` (asociación nativa) — respaldo/cruce, no reemplaza a los dos anteriores |
+| `{{nombre_grupo}}` | Columna `nombre_grupo` de la card 6230 — nombre de la empresa madre del grupo |
+| `{{rol}}` | Columna `rol` de la card 6230 — `Madre` o `Hija` |
 
-A partir de estos campos se deriva, para el resumen agregado (ver
+A partir de esto se deriva, para el resumen agregado (ver
 `references/mails_seguimiento.md`, sección 3):
 
 | Variable | Cómo se obtiene |
 |---|---|
-| `{{empresas_del_grupo}}` | Lista de RUT: la madre + todas las hijas de `rut_empresas_hijas` |
-| `{{nombre_empresa}}` (por fila del agregado) | Cruce de cada RUT del grupo contra `nombre_empresa` en la card 6206 |
-| `{{pct_avance}}` (por fila del agregado) | `pct_avance` de la card 6206 para ese RUT — `—` si no aparece |
-| `{{tareas_pendientes_lista}}` | Nombres de tarea (sin área) con `estado = Pendiente` en la card 6207 para ese RUT, unidos con `" · "` |
+| `{{pct_avance_hijas}}` | Card 6231, columna `pct_avance_hijas`, filtrado por `nombre_grupo` = madre del grupo |
+| `{{empresas_hijas}}` | Card 6232, columna `empresas_hijas` |
+| `{{hijas_100}}` | Card 6233, columna `hijas_100` |
+| `{{tareas_pendientes_hijas}}` | Card 6234, columna `tareas_pendientes_hijas` |
+| `{{nombre_empresa}}` (por fila de hija) | Columna `nombre_empresa` de la card 6230 con `rol = 'Hija'` para ese `nombre_grupo` |
+| `{{tareas_pendientes_lista}}` | Nombres de tarea (sin área) con `estado = Pendiente` en la card 6230 para esa hija, unidos con `" · "` |
+| `{{porcentaje_match_cassius}}` / `{{porcentaje_asientos_cassius}}` (por fila de hija) | Card 6301, columnas `porcentaje_match_cassius` / `porcentaje_asientos_cassius`, para esa hija |
+
+El MCP de Metabase no soporta pasar el parámetro de filtro de estos cards —
+hay que ejecutar `execute_card` sin filtro (trae todas las filas de todos
+los grupos) y filtrar localmente por `nombre_grupo`/`nombre_empresa`
+(comparación case-insensitive), igual que con las cards 6206/6207.
 
 ## Avance — Dashboard 607, card 6206 (`execute_card`, dashboard_id 607, card_id 6206)
 

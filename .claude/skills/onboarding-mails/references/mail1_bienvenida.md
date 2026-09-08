@@ -14,7 +14,7 @@ cuál es el primer paso concreto que el cliente tiene que dar.
 | Dato | Fuente | Cómo buscarlo |
 |---|---|---|
 | Nombre empresa y contacto principal | HubSpot | `search_crm_objects` |
-| Estructura de grupo (madre/hijas) | HubSpot | `rut_empresa_madre`, `rut_empresas_hijas` (companies) — ver detalle abajo |
+| Estructura de grupo (madre/hijas) | Dashboard 607, pestaña "Próximos Pasos" | `staging_marts.organizations_checklist_grupo` (cards 6230-6234, 6301) — ver detalle abajo |
 | Resumen de la reunión (notas Diio) | Diio | `summarize_client_interactions_content` |
 | Estado de checklist (bancos, SII, usuarios, etc.) | Dashboard 607, card **6207** | `execute_card` (dashboard_id 607, card_id 6207), filtrar por empresa — ver detalle abajo |
 | Avance y automatización Cassius | Dashboard 607, card **6206** | `execute_card` (dashboard_id 607, card_id 6206), filtrar por empresa — ver detalle abajo. **Columnas cambiaron en agosto 2026** — ver `references/mails_seguimiento.md` para la lista actualizada |
@@ -49,14 +49,11 @@ porcentajes.
 
 ## Estructura de grupo (empresa madre / hijas)
 
-Antes de armar el mail, revisá en HubSpot (companies) las mismas propiedades
-que usan los mails de seguimiento:
-
-- **`rut_empresa_madre`** — si tiene valor, esta empresa es una **hija**.
-- **`rut_empresas_hijas`** — si tiene valor, esta empresa es una **madre**
-  con una o más hijas.
-- **`hs_parent_company_id`** — respaldo/cruce si los dos campos de RUT
-  faltan o no coinciden.
+Antes de armar el mail, revisá si la empresa es madre, hija o independiente
+usando el mismo dashboard que el resto de la skill: dashboard 607, pestaña
+"Próximos Pasos" (`staging_marts.organizations_checklist_grupo`, cards
+6230-6234 y 6301) — **ya no se usan propiedades de HubSpot para esto** (ver
+`references/decisiones_pendientes.md`, decisión #6).
 
 Si hay estructura de grupo, sigue exactamente el mismo procedimiento y
 formato de tabla que la sección "0. Detectar estructura de grupo" y

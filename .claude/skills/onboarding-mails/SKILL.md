@@ -1,7 +1,7 @@
 ---
 name: onboarding-mails
 description: "Genera los borradores de correo del proceso de onboarding de Clay: la minuta de bienvenida (Mail 1, enviada dentro de las 24 hs de la primera reunión) y los seguimientos de semana 2, 4 y 6 (Mails 2-4). Usar esta skill siempre que el usuario pida armar, generar o redactar el mail/correo de bienvenida de onboarding, el seguimiento semanal de un cliente en onboarding, la minuta post-reunión, o cuando mencione frases como 'mail de bienvenida', 'seguimiento semana 2/4/6', 'borrador de onboarding para {cliente}', 'próximos pasos del cliente X', o pida actualizar el avance de conciliación/adopción de un cliente en onboarding para enviarlo por correo. También activarla si preguntan por el estado de las tareas de onboarding de una empresa y el objetivo final es comunicárselo al cliente, o si la empresa forma parte de un grupo madre/hijas."
-compatibility: "Requiere HubSpot MCP, Gmail MCP, Diio MCP (solo Mail 1), y Metabase Clay (execute_card sobre el dashboard 607, cards 6206 y 6207) para todo dato de avance/checklist. No usa Clay MCP ni consultas SQL directas a sources.* — ver references/decisiones_pendientes.md para el historial de por qué."
+compatibility: "Requiere HubSpot MCP, Gmail MCP, Diio MCP (solo Mail 1), y Metabase Clay (execute_card sobre el dashboard 607: cards 6206 y 6207 para avance/checklist, cards 6230-6234 y 6301 para estructura de grupo madre/hijas). No usa Clay MCP ni consultas SQL directas a sources.* — ver references/decisiones_pendientes.md para el historial de por qué."
 ---
 
 # Mails de Onboarding — Clay CUS
@@ -38,9 +38,12 @@ cómo se llegó a esta decisión.
 ## Empresas con estructura de grupo (madre/hijas)
 
 Algunas empresas están agrupadas (una madre con una o más hijas). Antes de
-armar cualquier mail, revisá si la empresa forma parte de un grupo — el
-procedimiento exacto (propiedades de HubSpot a chequear, cómo armar el
-resumen agregado) está en la sección "0. Detectar estructura de grupo" de
+armar cualquier mail, revisá si la empresa forma parte de un grupo. **Esto
+se detecta en el mismo dashboard 607, pestaña "Próximos Pasos"** (tabla
+`staging_marts.organizations_checklist_grupo`, cards 6230-6234 y 6301) —
+ya no se consultan propiedades de HubSpot para esto. El procedimiento
+exacto (cómo distinguir madre/hija/independiente, cómo armar el resumen
+agregado) está en la sección "0. Detectar estructura de grupo" de
 `references/mails_seguimiento.md`. Aplica tanto a los mails de seguimiento
 como al Mail 1.
 
@@ -90,12 +93,13 @@ confirma si de verdad quiere saltarse la revisión.
 Sigue la tabla de fuentes de datos del mail correspondiente (están en los
 archivos de referencia). Reglas generales:
 
-- **HubSpot es la fuente de verdad** para datos de cliente/contacto/fechas y
-  para la estructura de grupo (`rut_empresa_madre`, `rut_empresas_hijas`).
-- **El dashboard 607 (cards 6206 y 6207, vía `execute_card`) es la fuente de
-  verdad para avance, conciliación con Cassius y checklist** — no la
-  reemplaces por otra cosa, y no asumas nombres de columna viejos sin
-  revisar `references/variables.md`.
+- **HubSpot es la fuente de verdad** para datos de cliente/contacto/fechas.
+- **El dashboard 607 es la fuente de verdad para avance, conciliación con
+  Cassius, checklist y estructura de grupo** (cards 6206/6207 para avance y
+  checklist; cards 6230-6234 y 6301, tabla `organizations_checklist_grupo`,
+  para madre/hijas — ver "Empresas con estructura de grupo" arriba), todo
+  vía `execute_card` — no la reemplaces por otra cosa, y no asumas nombres
+  de columna viejos sin revisar `references/variables.md`.
 - El comentario libre del onboarder es manual — pregúntaselo al usuario antes
   de generar el borrador final si no te lo dio ya. No lo redactes tú en su
   nombre salvo que te lo pida explícitamente.
