@@ -82,3 +82,28 @@ propiedades de HubSpot estén bien cargadas y mantiene todo el dato de
 onboarding en un solo lugar. **Esta es la fuente vigente**, ver
 `references/mails_seguimiento.md` sección "0. Detectar estructura de
 grupo".
+
+### Bug encontrado en la primera prueba real (Camila, septiembre 2026): % Cassius de las hijas venía vacío
+
+Camila (onboarder) probó la skill con INVERSIONES FOIL SPA: el resumen
+agregado trajo bien las 11 hijas y sus tareas pendientes (cards 6230-6234),
+pero las columnas de % Match Cassius y % Asientos Cassius (card 6301)
+salieron `—` en todas las filas, aun en empresas con asientos y movimientos
+reales.
+
+Causa: a diferencia de las cards 6230-6234, la SQL de la card 6301 tiene el
+filtro `WHERE nombre_grupo = {{nombre_empresa}}` **sin** envolver en
+`[[ ]]` — es un parámetro obligatorio. El MCP de Metabase no tiene forma de
+pasarle ese parámetro a `execute_card`, así que ejecutarla sin filtro no
+devuelve "todo sin filtrar" (como sí pasa con 6230-6234) sino un error 400.
+El modelo interpretó ese error como "sin datos" y completó todo con `—` en
+vez de reportar el problema.
+
+Se confirmó el fix con `execute_query` (database_id 40) corriendo la SQL
+exacta de la card 6301 con `nombre_grupo = 'INVERSIONES FOIL SPA'` puesto
+directo en el texto — trajo los 11 registros con datos reales (ej.
+Constructora Pacifico Box SPA: 99.3% de asientos por Cassius; Parque
+Chagual SPA: 0%, consistente con que le falta "Realizar primera
+conciliación bancaria"). Queda documentado en
+`references/mails_seguimiento.md` (sección "0", nota bajo la tabla de
+cards) y `references/variables.md`.
