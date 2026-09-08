@@ -84,7 +84,58 @@ columnas: `nombre_grupo` (nombre de la empresa **madre** del grupo), `rol`
 | 6232 | N° Empresas Hijas | Cantidad de hijas distintas de un grupo |
 | 6233 | Hijas al 100% | Cuántas hijas tienen el 100% de sus tareas en `Ok` |
 | 6234 | Tareas Pendientes (Hijas) | Suma de tareas en `Pendiente` de todas las hijas de un grupo |
-| 6301 | Avance y Conciliación — Empresas Hijas (Grupo) | Por cada hija: match Cassius/usuario y % asientos Cassius/usuario (año en curso) |
+| 6301 | Avance y Conciliación — Empresas Hijas (Grupo) | Por cada hija: match Cassius/usuario y % asientos Cassius/usuario (año en curso) — **ver nota abajo, no se ejecuta como los demás** |
+
+**⚠️ Card 6301 tiene un parámetro obligatorio — no se puede ejecutar con
+`execute_card` sin filtro (a diferencia de 6230-6234).** La SQL de 6230-6234
+envuelve el filtro en `[[AND nombre_grupo = {{nombre_empresa}}]]` (opcional:
+sin filtro trae todo). La de 6301 usa `WHERE nombre_grupo = {{nombre_empresa}}`
+sin corchetes — es decir, el filtro es **obligatorio**, y el MCP de Metabase
+no tiene forma de pasarlo a `execute_card`. Si intentás `execute_card` sobre
+la card 6301 sin parámetro, Metabase devuelve error 400 (bad request) — **no
+es que la empresa no tenga datos**, es que la card no puede correr así. Si
+alguna vez viste esta sección salir con `—` en todas las filas de % Match
+Cassius / % Asientos Cassius, esto es lo que pasó: se interpretó el 400 como
+"sin datos" en vez de resolverlo.
+
+**Cómo obtener el dato de la card 6301 de todos modos:** usá
+`execute_query` (no `execute_card`) contra `database_id` 40 con la SQL
+exacta de la card, reemplazando `{{nombre_empresa}}` por el `nombre_grupo`
+literal de la madre del grupo (comillas simples, escapando cualquier
+comilla simple del nombre duplicándola: `O'HIGGINS` → `O''HIGGINS`):
+
+```sql
+WITH hijas AS (
+  SELECT DISTINCT organization_id, nombre_empresa
+  FROM staging_marts.organizations_checklist_grupo
+  WHERE nombre_grupo = '{{NOMBRE_GRUPO_MADRE}}' AND rol = 'Hija'
+)
+SELECT
+  h.nombre_empresa,
+  SUM(COALESCE(w.movimientos_conciliados_cassius,0)) AS match_cassius_n,
+  SUM(COALESCE(w.movimientos_conciliados_usuario,0)) AS match_usuario_n,
+  ROUND(100.0 * SUM(COALESCE(w.movimientos_conciliados_cassius,0)) / NULLIF(SUM(COALESCE(w.movimientos_conciliados_cassius,0)) + SUM(COALESCE(w.movimientos_conciliados_usuario,0)),0),1) AS porcentaje_match_cassius,
+  ROUND(100.0 * SUM(COALESCE(w.movimientos_conciliados_usuario,0)) / NULLIF(SUM(COALESCE(w.movimientos_conciliados_cassius,0)) + SUM(COALESCE(w.movimientos_conciliados_usuario,0)),0),1) AS porcentaje_match_usuario,
+  COUNT(ae.accounting_entry_id) AS asientos_totales,
+  SUM(CASE WHEN ae.is_cassius THEN 1 ELSE 0 END) AS asientos_cassius,
+  SUM(CASE WHEN NOT ae.is_cassius THEN 1 ELSE 0 END) AS asientos_usuario,
+  ROUND(100.0 * SUM(CASE WHEN ae.is_cassius THEN 1 ELSE 0 END) / NULLIF(COUNT(ae.accounting_entry_id),0),1) AS porcentaje_asientos_cassius,
+  ROUND(100.0 * SUM(CASE WHEN NOT ae.is_cassius THEN 1 ELSE 0 END) / NULLIF(COUNT(ae.accounting_entry_id),0),1) AS porcentaje_asientos_usuario
+FROM hijas h
+LEFT JOIN staging.movements_reconciliation_weekly_by_movement_date w
+  ON w.organization_id = h.organization_id AND w.week_start >= '2026-01-01' AND w.week_start < '2027-01-01'
+LEFT JOIN staging.accounting_entries ae
+  ON ae.organization_id = h.organization_id AND ae.created_at >= '2026-01-01' AND ae.created_at < '2027-01-01'
+GROUP BY h.nombre_empresa
+ORDER BY h.nombre_empresa;
+```
+
+Esta es exactamente la SQL de la card 6301 (verificala con `get_card` antes
+de usarla si pasa mucho tiempo desde esta actualización, por si Piero la
+cambió) — solo cambia cómo se ejecuta. El rango de fecha `2026-01-01` a
+`2027-01-01` es el año en curso tal como está armada la card; si cambia el
+año, ajustalo. Un `porcentaje_*` en `null` es válido (la hija no tiene
+movimientos/asientos ese año) — mostralo como `—`, no como error.
 
 **Cómo detectar si la empresa que dispara el mail es madre, hija o
 independiente:** el MCP de Metabase no soporta pasar el parámetro de filtro
@@ -108,10 +159,11 @@ Si detectás una estructura de grupo (madre + una o más hijas):
    envío (madre o hija) — las secciones 1, 2 y 4 usan sus propios datos de
    la card 6206/6207, como siempre (buscá esa empresa puntual ahí por
    `nombre_empresa`, no por `nombre_grupo`).
-2. La sección 3 (resumen agregado) usa los cards 6231-6234 y 6301 filtrados
-   (localmente, igual que en el punto anterior) por el `nombre_grupo` de la
-   madre — junta a **todas** las hijas del grupo, sin importar cuál de ellas
-   disparó el mail.
+2. La sección 3 (resumen agregado) usa los cards 6231-6234 filtrados
+   localmente (ejecutá `execute_card` sin filtro y buscá el `nombre_grupo`
+   de la madre) y la card 6301 vía `execute_query` (ver nota de arriba, ese
+   sí es obligatorio pasarle el filtro en la SQL) — junta a **todas** las
+   hijas del grupo, sin importar cuál de ellas disparó el mail.
 3. Si alguna hija del grupo no aparece todavía en la card 6206/6207 (por
    ejemplo, recién conectada), incluila igual en la tabla agregada con `—`
    en las columnas que falten — no la omitas ni la saltes en silencio.
@@ -213,8 +265,12 @@ valor sea `null`, tal como indica la regla de arriba.
 ## 3. Resumen agregado del grupo (solo si hay empresa madre/hijas)
 
 Esta sección solo aparece si el Paso 0 detectó una estructura de grupo. Los
-datos salen de los cards 6230-6234 y 6301 del dashboard 607 (ver Paso 0),
-filtrados localmente por el `nombre_grupo` de la madre del grupo detectado.
+datos de checklist salen de los cards 6230-6234 del dashboard 607 (`execute_card`
+sin filtro, filtrado localmente por el `nombre_grupo` de la madre) y los de
+conciliación/Cassius de la card 6301, vía `execute_query` con el SQL de la
+nota de la sección "0" (no con `execute_card` — esa card tiene el filtro
+obligatorio y sin el parámetro correcto devuelve error 400, no ceros ni
+guiones).
 
 Primero, un apartado con el resumen a nivel de grupo (no por hija):
 
@@ -239,8 +295,11 @@ la card 6301 para cada `nombre_empresa` con `rol = 'Hija'` de ese
   6230 con `estado = Pendiente` para esa hija, unidos con `" · "`. Si no
   tiene ninguna pendiente, escribí "Sin tareas pendientes".
 - `{{porcentaje_match_cassius}}` y `{{porcentaje_asientos_cassius}}` salen
-  de la card 6301 para esa hija — si la hija no aparece ahí (sin
-  movimientos/asientos en el año), dejá `—` en esas dos columnas.
+  de la card 6301 (ejecutada vía `execute_query`, ver sección "0") para esa
+  hija — si el valor viene `null` (sin movimientos/asientos en el año) o la
+  hija no aparece en el resultado, dejá `—` en esas dos columnas. Si en vez
+  de eso `execute_query` te tira error, es un problema real a reportar, no
+  un `—` esperado.
 - Ordená la tabla alfabéticamente por `nombre_empresa`, salvo que el
   onboarder pida otro orden.
 - Si una hija del grupo no aparece en la card 6230 (por ejemplo, recién
