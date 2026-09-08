@@ -13,7 +13,7 @@ aplicarlo en silencio.
 | 3 | ¿Calendly por onboarder o uno general de Clay? | Por onboarder: usa el link que el onboarder te indique en la conversación. Si no lo tenés, pregúntalo — no inventes ni dejes un link genérico. |
 | 4 | ¿Cómo se maneja el envío si el cliente tiene múltiples usuarios? | Enviar solo al contacto principal (`{{email_contacto_principal}}` de HubSpot) en Para + `ob@clay.cl` en CC. Si el onboarder pide incluir a más gente, agrégalos en CC, pero no lo hagas por defecto. |
 | 5 | ¿El skill puede ejecutarse manualmente fuera de las fechas automáticas? | Sí — siempre se ejecuta a pedido del onboarder en el chat (o de la rutina `seguimiento-onboarding` de Claude Code), calculando igual la fecha/semana correspondiente para dar contexto. |
-| 6 | ¿Cómo se detecta si una empresa tiene estructura de grupo (madre/hijas)? | **✅ Resuelto (agosto 2026):** propiedades de HubSpot en el objeto companies: `rut_empresa_madre` (si la empresa es hija) y `rut_empresas_hijas` (si es madre), confirmadas vía `search_properties`. Se usa `hs_parent_company_id` (asociación nativa) solo como respaldo/cruce si los dos campos de RUT faltan o no coinciden — no lo reemplaza. |
+| 6 | ¿Cómo se detecta si una empresa tiene estructura de grupo (madre/hijas)? | **✅ Resuelto — actualizado (septiembre 2026):** dashboard 607, pestaña "Próximos Pasos" (`staging_marts.organizations_checklist_grupo`, cards 6230-6234 y 6301 vía `execute_card`). Reemplaza el approach anterior de propiedades de HubSpot (`rut_empresa_madre`, `rut_empresas_hijas`, `hs_parent_company_id`) — ver "Historial: por qué se dejó de usar HubSpot para grupo" abajo. |
 | 7 | ¿El % de asientos hechos por Cassius viene calculado en el dashboard 607? | **✅ Resuelto (actualizado el 7 de agosto de 2026):** sí — Piero agregó las columnas `% asientos cassius` y `% asientos manual` directo a la card 6206 el 6 de agosto. Ya no hace falta calcularlas a mano (`asientos_por_cassius / asientos_contables_totales`); usar las columnas directo, ver `references/variables.md`. |
 
 ## Historial: cómo se llegó a usar el dashboard 607 (julio 2026)
@@ -51,3 +51,34 @@ registros de organización duplicados** en `sources.organizations` (RUTs
 `false` para las 5.434 organizaciones de la tabla (no sirve como señal). Si
 en el futuro se vuelve a tocar `sources.*` directamente, tener esto en
 cuenta.
+
+## Historial: por qué se dejó de usar HubSpot para detectar grupo (septiembre 2026)
+
+La v1 de esta skill (julio-agosto 2026) detectaba la estructura de grupo
+consultando `rut_empresa_madre` y `rut_empresas_hijas` en HubSpot
+(companies). En la práctica esto fallaba en el chat: al no tener un lugar
+único y confiable donde verificar esos campos (propiedades a veces vacías,
+o el modelo no sabía bien dónde ir a buscarlas), la detección de grupo
+quedaba inconsistente.
+
+Josefa señaló que Piero ya había armado, directo en el dashboard 607
+("Onboarding - Progreso y Checklist"), pestaña **"Próximos Pasos"**
+(`analytics.clay.cl/dashboard/607-onboarding-progreso-y-checklist?tab=569-pr%C3%B3ximos-pasos`),
+una sección completa dedicada a esto: la tabla
+`staging_marts.organizations_checklist_grupo` (columnas `nombre_grupo`,
+`rol` = `Madre`/`Hija`, `nombre_empresa`, `area`, `tarea`, `estado`,
+`fecha_completado`) y los cards 6230-6234 y 6301 que calculan sobre ella el
+checklist y la conciliación agregada de las hijas. Se validó con
+"INVERSIONES FOIL SPA" (la madre) y su hija "CONSTRUCTORA PACIFICO BOX
+SPA": el card 6230 sin filtro trae la fila
+`nombre_grupo=INVERSIONES FOIL SPA, rol=Hija, nombre_empresa=CONSTRUCTORA
+PACIFICO BOX SPA, ...` — dato real, no inventado.
+
+Como esta tabla ya vive en la misma colección "Onboarding" y el mismo
+`database_id` (40) que `organizations_onboarding_progress` y
+`organizations_checklist_status` (las que ya usa el resto de la skill), se
+adoptó como fuente única también para grupo — evita depender de que las
+propiedades de HubSpot estén bien cargadas y mantiene todo el dato de
+onboarding en un solo lugar. **Esta es la fuente vigente**, ver
+`references/mails_seguimiento.md` sección "0. Detectar estructura de
+grupo".

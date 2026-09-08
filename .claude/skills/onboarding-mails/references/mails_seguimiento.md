@@ -64,38 +64,55 @@ eso, es un problema real que hay que reportar, no un fallback esperado.
 
 ## 0. Detectar estructura de grupo (empresa madre / hijas)
 
-Antes de armar cualquier tabla, revisa en HubSpot (companies) estas
-propiedades de la empresa que dispara el mail:
+**✅ Fuente vigente (septiembre 2026): el propio dashboard 607, pestaña
+"Próximos Pasos"** (`analytics.clay.cl/dashboard/607-onboarding-progreso-y-checklist?tab=569-pr%C3%B3ximos-pasos`),
+sobre la tabla `staging_marts.organizations_checklist_grupo`. Ya no se
+detecta la estructura de grupo consultando propiedades de HubSpot — ver
+`references/decisiones_pendientes.md` (decisión #6) para el porqué del
+cambio.
 
-- **`rut_empresa_madre`** — si tiene valor, esta empresa es una **hija** de
-  otra (el valor es el RUT de la madre).
-- **`rut_empresas_hijas`** — si tiene valor, esta empresa es una **madre**
-  con una o más hijas (puede traer varios RUT juntos; sepáralos por coma o
-  punto y coma según venga el dato).
-- **`hs_parent_company_id`** (asociación nativa de HubSpot) — úsalo como
-  respaldo/cruce si los dos campos anteriores faltan o no coinciden entre
-  sí. No lo reemplaces por completo: los campos de RUT son los que Sole usa
-  para cruzar contra el dashboard 607, así que en caso de conflicto,
-  prioriza tener ambos RUT y avisa del conflicto en vez de elegir uno en
-  silencio.
+Esa tabla trae, por cada tarea de checklist de cada **hija**, estas
+columnas: `nombre_grupo` (nombre de la empresa **madre** del grupo), `rol`
+(`Madre` o `Hija`), `nombre_empresa`, `area`, `tarea`, `estado`,
+`fecha_completado`. Se accede vía `execute_card` con estos cards (todos en
+`dashboard_id` 607, pestaña "Próximos Pasos"):
 
-Si ninguno de los tres campos tiene valor, la empresa es independiente:
-seguí el flujo normal (secciones 1, 2 y 4 con los datos de esa única
-empresa) y **saltate la sección 3** (resumen agregado del grupo).
+| Card ID | Nombre | Qué trae |
+|---|---|---|
+| 6230 | Checklist de Grupo - Detalle por Empresa y Tarea (madre + hijas) | Una fila por tarea de cada hija de cada grupo (`rol <> 'Madre'`) |
+| 6231 | % Avance Global (Hijas) | % de tareas en `Ok` sobre el total, de todas las hijas de un grupo |
+| 6232 | N° Empresas Hijas | Cantidad de hijas distintas de un grupo |
+| 6233 | Hijas al 100% | Cuántas hijas tienen el 100% de sus tareas en `Ok` |
+| 6234 | Tareas Pendientes (Hijas) | Suma de tareas en `Pendiente` de todas las hijas de un grupo |
+| 6301 | Avance y Conciliación — Empresas Hijas (Grupo) | Por cada hija: match Cassius/usuario y % asientos Cassius/usuario (año en curso) |
+
+**Cómo detectar si la empresa que dispara el mail es madre, hija o
+independiente:** el MCP de Metabase no soporta pasar el parámetro de filtro
+de estos cards (a diferencia de la UI del dashboard), así que hay que
+ejecutar `execute_card` (card 6230) **sin filtro** — trae todas las filas de
+todos los grupos — y buscar el nombre de la empresa (comparación
+case-insensitive, igual que con `nombre_empresa` en las demás cards) en las
+columnas `nombre_grupo` y `nombre_empresa`:
+
+- Aparece como `nombre_grupo` → es una **madre**. Sus hijas son todas las
+  filas con ese `nombre_grupo` (columna `nombre_empresa`, `rol = 'Hija'`).
+- Aparece como `nombre_empresa` con `rol = 'Hija'` → es una **hija**; su
+  madre es el valor de `nombre_grupo` de esa fila.
+- No aparece en ninguna de las dos columnas → la empresa es independiente:
+  seguí el flujo normal (secciones 1, 2 y 4 con los datos de esa única
+  empresa) y **saltate la sección 3** (resumen agregado del grupo).
 
 Si detectás una estructura de grupo (madre + una o más hijas):
 
-1. Reuní el RUT de todas las empresas del grupo: la madre + todas las hijas
-   listadas en `rut_empresas_hijas` (o las que aparezcan asociadas vía
-   `hs_parent_company_id` si el campo de texto está incompleto).
-2. Ejecutá `execute_card` (card 6206) una sola vez para todo el grupo — ya
-   trae todas las empresas de onboarding — y filtrá localmente por esos RUT
-   (comparación case-insensitive, igual que con `nombre_empresa`).
-3. El mail se sigue armando centrado en la empresa puntual que dispara el
-   envío (madre o hija) — las secciones 1, 2 y 4 usan sus propios datos,
-   como siempre. La sección 3 (resumen agregado) es la única que junta a
-   **todas** las empresas del grupo.
-4. Si alguna empresa del grupo no aparece todavía en la card 6206 (por
+1. El mail se sigue armando centrado en la empresa puntual que dispara el
+   envío (madre o hija) — las secciones 1, 2 y 4 usan sus propios datos de
+   la card 6206/6207, como siempre (buscá esa empresa puntual ahí por
+   `nombre_empresa`, no por `nombre_grupo`).
+2. La sección 3 (resumen agregado) usa los cards 6231-6234 y 6301 filtrados
+   (localmente, igual que en el punto anterior) por el `nombre_grupo` de la
+   madre — junta a **todas** las hijas del grupo, sin importar cuál de ellas
+   disparó el mail.
+3. Si alguna hija del grupo no aparece todavía en la card 6206/6207 (por
    ejemplo, recién conectada), incluila igual en la tabla agregada con `—`
    en las columnas que falten — no la omitas ni la saltes en silencio.
 
@@ -195,23 +212,40 @@ valor sea `null`, tal como indica la regla de arriba.
 
 ## 3. Resumen agregado del grupo (solo si hay empresa madre/hijas)
 
-Esta sección solo aparece si el Paso 0 detectó una estructura de grupo.
-Una fila por cada empresa del grupo (incluida la que dispara el mail),
-usando `pct_avance` de la card 6206 y las tareas en estado `Pendiente` de la
-card 6207 para cada RUT del grupo:
+Esta sección solo aparece si el Paso 0 detectó una estructura de grupo. Los
+datos salen de los cards 6230-6234 y 6301 del dashboard 607 (ver Paso 0),
+filtrados localmente por el `nombre_grupo` de la madre del grupo detectado.
 
-| Empresa | % Avance | Tareas pendientes |
-|---|---|---|
-| `{{nombre_empresa}}` | `{{pct_avance}}%` | `{{tareas_pendientes_lista}}` |
+Primero, un apartado con el resumen a nivel de grupo (no por hija):
+
+| Métrica | Valor |
+|---|---|
+| % Avance global de las hijas | `{{pct_avance_hijas}}%` (card 6231) |
+| N° de empresas hijas | `{{empresas_hijas}}` (card 6232) |
+| Hijas con checklist 100% completo | `{{hijas_100}}` (card 6233) |
+| Tareas pendientes (todas las hijas) | `{{tareas_pendientes_hijas}}` (card 6234) |
+
+Después, una fila por cada hija del grupo (la madre no va en esta tabla —
+sus propios datos ya están en las secciones 1, 2 y 4 si es ella quien
+dispara el mail), usando el checklist de la card 6230 y la conciliación de
+la card 6301 para cada `nombre_empresa` con `rol = 'Hija'` de ese
+`nombre_grupo`:
+
+| Empresa | Tareas pendientes | % Match Cassius | % Asientos Cassius |
+|---|---|---|---|
+| `{{nombre_empresa}}` | `{{tareas_pendientes_lista}}` | `{{porcentaje_match_cassius}}%` | `{{porcentaje_asientos_cassius}}%` |
 
 - `{{tareas_pendientes_lista}}` = nombres de tarea (sin el área) de la card
-  6207 con `estado = Pendiente` para esa empresa, unidos con `" · "`. Si no
+  6230 con `estado = Pendiente` para esa hija, unidos con `" · "`. Si no
   tiene ninguna pendiente, escribí "Sin tareas pendientes".
-- Ordená la tabla con la empresa madre primero y las hijas debajo, en el
-  mismo orden en que aparecen en `rut_empresas_hijas`.
-- Si una empresa del grupo no aparece en la card 6206, poné `—` en % Avance
-  y "Sin dato en el dashboard" en Tareas pendientes — no la excluyas de la
-  tabla.
+- `{{porcentaje_match_cassius}}` y `{{porcentaje_asientos_cassius}}` salen
+  de la card 6301 para esa hija — si la hija no aparece ahí (sin
+  movimientos/asientos en el año), dejá `—` en esas dos columnas.
+- Ordená la tabla alfabéticamente por `nombre_empresa`, salvo que el
+  onboarder pida otro orden.
+- Si una hija del grupo no aparece en la card 6230 (por ejemplo, recién
+  conectada), incluila igual en la tabla con `—` en las columnas que
+  falten — no la excluyas.
 
 ## 4. Tabla de próximos pasos
 
