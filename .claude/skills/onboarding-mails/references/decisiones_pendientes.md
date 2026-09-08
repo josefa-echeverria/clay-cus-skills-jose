@@ -99,11 +99,44 @@ devuelve "todo sin filtrar" (como sí pasa con 6230-6234) sino un error 400.
 El modelo interpretó ese error como "sin datos" y completó todo con `—` en
 vez de reportar el problema.
 
-Se confirmó el fix con `execute_query` (database_id 40) corriendo la SQL
-exacta de la card 6301 con `nombre_grupo = 'INVERSIONES FOIL SPA'` puesto
-directo en el texto — trajo los 11 registros con datos reales (ej.
+**Primer intento de fix (no funcionó para todos): `execute_query`.** Se
+confirmó que corriendo la SQL exacta de la card 6301 vía `execute_query`
+(database_id 40), con `nombre_grupo = 'INVERSIONES FOIL SPA'` puesto
+directo en el texto, sí traía los 11 registros con datos reales (ej.
 Constructora Pacifico Box SPA: 99.3% de asientos por Cassius; Parque
 Chagual SPA: 0%, consistente con que le falta "Realizar primera
-conciliación bancaria"). Queda documentado en
-`references/mails_seguimiento.md` (sección "0", nota bajo la tabla de
-cards) y `references/variables.md`.
+conciliación bancaria"). Se documentó ese workaround en las referencias y
+se le pidió a Camila que probara de nuevo.
+
+**Camila probó de nuevo y siguió saliendo vacío.** Esta vez el mail trajo
+una nota explícita: "dato no disponible en este reporte (restricción de
+acceso puntual a la fuente de conciliación agregada)". Eso reveló el
+problema real: `execute_query` corre SQL nativo contra la base de datos, y
+no todas las cuentas/sesiones de Metabase tienen permiso de "SQL nativo"
+(a diferencia de ejecutar cards ya guardadas, que sí tienen todos). El
+workaround funcionaba en la sesión que lo probó (con permisos más amplios)
+pero no en la de Camila — por eso "usar `execute_query` en vez de
+`execute_card`" no era una solución robusta, aunque el diagnóstico del
+parámetro obligatorio sí era correcto.
+
+**✅ Fix real (8 de septiembre de 2026): se corrigió la card 6301 en
+Metabase**, no la skill. Se usó `update_card` para envolver el filtro en
+`[[AND nombre_grupo = {{nombre_empresa}}]]`, igual que 6230-6234 (antes era
+`WHERE nombre_grupo = {{nombre_empresa}} AND rol = 'Hija'` sin corchetes).
+Verificado: `execute_card` sin filtro ahora devuelve las 40 hijas de todos
+los grupos sin error, con los mismos valores reales que había traído
+`execute_query` antes. Con esto la card 6301 se ejecuta exactamente igual
+que 6230-6234 (`execute_card` sin filtro + filtro local por
+`nombre_grupo`), sin depender de permisos de SQL nativo — cualquier
+onboarder puede usarla. Se limpiaron las referencias
+(`mails_seguimiento.md`, `variables.md`) para reflejar esto y se sacó la
+mención a `execute_query`.
+
+**Lección para el futuro:** si una card de este dashboard vuelve a salir
+"vacía" para todos, antes de asumir que es un dato faltante real, verificá
+si `execute_card` sin filtro tira error — puede ser un parámetro
+obligatorio mal configurado en la card, no falta de datos. Y si el fix
+depende de un tool distinto a `execute_card` (como `execute_query`), no
+asumas que todas las sesiones/onboarders tienen el mismo nivel de permisos
+en Metabase — verificalo con una prueba real antes de darlo por
+resuelto.

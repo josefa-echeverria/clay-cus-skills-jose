@@ -39,22 +39,21 @@ A partir de esto se deriva, para el resumen agregado (ver
 | `{{tareas_pendientes_hijas}}` | Card 6234, columna `tareas_pendientes_hijas` |
 | `{{nombre_empresa}}` (por fila de hija) | Columna `nombre_empresa` de la card 6230 con `rol = 'Hija'` para ese `nombre_grupo` |
 | `{{tareas_pendientes_lista}}` | Nombres de tarea (sin área) con `estado = Pendiente` en la card 6230 para esa hija, unidos con `" · "` |
-| `{{porcentaje_match_cassius}}` / `{{porcentaje_asientos_cassius}}` (por fila de hija) | Card 6301, columnas `porcentaje_match_cassius` / `porcentaje_asientos_cassius`, para esa hija — **ver nota abajo, se ejecuta distinto** |
+| `{{porcentaje_match_cassius}}` / `{{porcentaje_asientos_cassius}}` (por fila de hija) | Card 6301, columnas `porcentaje_match_cassius` / `porcentaje_asientos_cassius`, para esa hija |
 
 El MCP de Metabase no soporta pasar el parámetro de filtro de estos cards —
-para 6230-6234 hay que ejecutar `execute_card` sin filtro (trae todas las
-filas de todos los grupos) y filtrar localmente por
-`nombre_grupo`/`nombre_empresa` (comparación case-insensitive), igual que
-con las cards 6206/6207.
+hay que ejecutar `execute_card` sin filtro (trae todas las filas de todos
+los grupos, para las 5 cards 6230-6234 y 6301 por igual) y filtrar
+localmente por `nombre_grupo`/`nombre_empresa` (comparación
+case-insensitive), igual que con las cards 6206/6207.
 
-**Excepción — card 6301:** a diferencia de 6230-6234, su filtro
-`nombre_grupo = {{nombre_empresa}}` es obligatorio (no está envuelto en
-`[[ ]]`), así que `execute_card` sin parámetro devuelve error 400 — no
-"sin datos". Para esta card hay que usar `execute_query` (database_id 40)
-con el SQL exacto de la card, reemplazando `{{nombre_empresa}}` por el
-`nombre_grupo` literal (comillas simples escapadas duplicándolas). El SQL
-completo y el detalle está en `references/mails_seguimiento.md`, sección
-"0. Detectar estructura de grupo".
+**Nota histórica:** hasta el 8 de septiembre de 2026 la card 6301 tenía el
+filtro `nombre_grupo` como obligatorio (a diferencia de 6230-6234), por lo
+que `execute_card` sin parámetro le devolvía error 400 en vez de traer
+todo — eso hacía que el % Match/Asientos Cassius de las hijas saliera
+vacío. Se corrigió la card en Metabase para que el filtro sea opcional,
+igual que las otras 4. Ver el caso completo en
+`references/decisiones_pendientes.md`.
 
 ## Avance — Dashboard 607, card 6206 (`execute_card`, dashboard_id 607, card_id 6206)
 
