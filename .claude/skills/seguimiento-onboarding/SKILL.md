@@ -118,15 +118,28 @@ sin completar, datos marcados como no disponibles, adjuntos que fallaron,
 etc.), para que el onboarder sepa exactamente qué mirar antes de aprobar los
 borradores.
 
-## 6. Notificar el resumen en Slack
+## 6. Notificar el resumen en Slack (solo cuando corresponde)
 
-Además de mostrar el resumen en el chat/log, envía el mismo resumen al canal
-de Slack **`#team-onboarding`** usando el MCP de Slack — esto aplica
-**siempre**, corras la rutina manual o por cron, y **siempre** (no solo
-cuando hay errores), para que el equipo sepa qué borradores quedaron
-esperando revisión sin depender de que alguien entre a mirar el log.
+Muestra siempre el resumen en el chat/log. El mensaje a Slack
+**`#team-onboarding`** (vía MCP de Slack), en cambio, solo se envía en estos
+dos casos:
 
-Formato del mensaje (Markdown de Slack, no HTML):
+1. **Hubo al menos un ticket que calzó hoy** con la cadencia (paso 2) — se
+   haya generado el borrador, ya existiera uno, o haya fallado por cualquier
+   motivo.
+2. **Falló la conexión/consulta a Metabase** (dashboard 607: `execute_card`
+   no responde, tira error, timeout, etc.) al intentar traer avance/checklist
+   para un cliente que sí correspondía hoy — es un problema real que el
+   equipo necesita saber, aunque el borrador haya quedado incompleto o sin
+   generar.
+
+**Si no se da ninguno de los dos casos** (paso 2 no encontró a nadie a quien
+tocarle hoy, y no hubo error de Metabase), **no mandes nada a Slack** — el
+resumen en el chat/log basta. No hace falta avisar al canal que "hoy no
+correspondía": ese aviso genera ruido diario sin aportar nada accionable.
+
+Formato del mensaje cuando sí corresponde enviarlo (Markdown de Slack, no
+HTML):
 
 ```
 :memo: *Seguimiento de onboarding — {{onboarder}} — {{fecha}}*
@@ -143,11 +156,12 @@ Formato del mensaje (Markdown de Slack, no HTML):
 (o "Sin pendientes 🎉" si la lista de pendientes está vacía)
 ```
 
-Si ningún ticket calzó con el día exacto (paso 2 no encontró a nadie a quien
-tocarle hoy), igual manda el mensaje aclarando "Hoy no correspondía generar
-ningún seguimiento para {{onboarder}}" — así el canal confirma que la rutina
-corrió, en vez de quedar en silencio y generar la duda de si falló o
-simplemente no había nada que hacer.
+Si el caso que dispara el envío es un error de Metabase (caso 2) y no hubo
+ningún ticket que además calzara con la cadencia, usa el mismo formato pero
+dejando explícito el fallo, por ejemplo agregando una fila
+`| {{nombre_empresa}} | {{n}} | Error: falla de conexión a Metabase — {{detalle}} |`
+en la tabla, para que quede claro que el mensaje es por una falla técnica y
+no por un seguimiento generado con éxito.
 
 Si el envío a Slack falla (canal no encontrado, sin permisos, etc.), no
 detengas ni reviertas la creación de los borradores en Gmail — esos ya están
@@ -163,9 +177,10 @@ Si se agenda con cron usando `claude --print`, conviene:
   depender de detectar el usuario conectado en una sesión no interactiva).
 - Correrla una vez al día — no más seguido, porque el filtro de día exacto
   del paso 2 asume una sola pasada diaria.
-- Redirigir la salida a un log — el aviso al equipo ya no depende solo del
-  log, porque el paso 6 manda el resumen a `#team-onboarding` en cada
-  corrida (haya o no errores).
+- Redirigir la salida a un log de todas formas — el paso 6 solo manda el
+  resumen a `#team-onboarding` cuando hubo seguimiento o falla de Metabase,
+  así que las corridas "sin nada que hacer" solo quedan registradas en ese
+  log, no en Slack.
 - Limitar las herramientas permitidas a las de HubSpot, Clay, clay-dw,
   Gmail (drafts) y Slack (mensajes), para que la ejecución desatendida no
   pueda tocar nada fuera de este flujo.
