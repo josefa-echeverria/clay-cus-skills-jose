@@ -34,7 +34,20 @@ el `pipeline_id` de memoria, búscalo por nombre — no lo inventes ni reutilice
 el de otro pipeline como SaaS/Servicio/Upsell) que:
 
 - pertenecen al `owner_id` resuelto en el paso 0, y
-- están en un stage activo (no cerrado/ganado/perdido).
+- están en la etapa **`Bienvenida`** o **`Configuración y Capacitaciones`**
+  del embudo (resuelve el `stage_id` exacto por nombre, no lo inventes).
+
+Estas dos etapas son las únicas que corresponden al alcance de esta rutina.
+Un ticket que sigue **activo en HubSpot** pero ya avanzó a otra etapa (por
+ejemplo, pasó a Seguimiento/Traspaso a Soporte u otra etapa posterior) **no
+se procesa acá** aunque su `createdate` calce con 14/21/28/.../56 días — no
+es un error ni un pendiente a reportar, es simplemente un cliente que ya
+salió del alcance de esta rutina. No lo incluyas en el resumen ni en los
+"Pendientes para revisar" del paso 5/6 por ese motivo (que no aparezca en el
+dashboard 607, por ejemplo, es esperable si ya no está en estas dos etapas —
+no lo trates como el "problema real a reportar" del que habla
+`onboarding-mails`, esa alerta aplica solo a clientes que sí están en etapa
+`Bienvenida`/`Configuración y Capacitaciones`).
 
 Para cada ticket, obtén su fecha de creación (`createdate`, propiedad nativa
 de HubSpot) y el `deal`/organización asociada. No uses `fecha_inicio_ob` para
