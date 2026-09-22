@@ -134,9 +134,16 @@ Si detectás una estructura de grupo (madre + una o más hijas):
 
 ## 1. Tabla de avance de la empresa
 
-Sale directo de la fila de la card 6206 para esa empresa. Compará contra la
-semana anterior solo si tenés ese dato guardado de un mail previo (no lo
-inventes ni lo dejes en blanco — usá `—` si no lo tenés).
+Sale directo de la fila de la card 6206 para esa empresa.
+
+**Comparación con la semana anterior (septiembre 2026):** la columna
+"Semana anterior" va **solo si tenés datos reales** de la semana anterior
+(por ejemplo, de un mail previo ya enviado con valores). **Si no los tenés,
+no la incluyas**: la tabla queda con solo dos columnas (`Métrica` / `Valor
+actual`). Nunca armes la columna rellena con `—` en todas las filas ni la
+dejes en blanco — una columna entera sin datos se ve como un error en el
+mail. Tampoco inventes los valores. Si tenés dato para algunas métricas y
+no para otras, ahí sí usá `—` solo en las celdas puntuales que falten.
 
 **Cambio (agosto 2026): la card 6206 se modificó.** Las columnas viejas
 `pct_conciliacion_cassius_auto` y `pct_conciliacion_usuario` ya no existen —
@@ -145,21 +152,26 @@ columnas nuevas de asientos, ver sección 2). Si esta tabla no calza con lo
 que devuelve `execute_card`, volvé a inspeccionar las columnas reales antes
 de asumir que siguen igual.
 
-| Métrica | Valor actual | Semana anterior |
-|---|---|---|
-| % Avance total del checklist | `{{pct_avance}}%` | — |
-| Tareas completadas / pendientes | `{{tareas_ok}}` / `{{tareas_pendientes}}` | — |
-| Movimientos totales | `{{movimientos_totales}}` | — |
-| Movimientos sin match | `{{movimientos_sin_match}}` | — |
-| Match Cassius (cantidad) | `{{match_cassius_n}}` | — |
-| Match usuario (cantidad) | `{{match_usuario_n}}` | — |
-| Movimientos de tarjeta | `{{movimientos_tarjeta}}` | — |
-| TC/Medios de pago sin match | `{{tc_medios_pago_sin_match}}` | — |
-| Asientos contables totales | `{{asientos_contables_totales}}` | — |
-| Asientos por Cassius | `{{asientos_por_cassius}}` | — |
-| Asientos manuales | `{{asientos_manuales}}` | — |
-| DTEs por cobrar sin contabilizar | `{{dtes_por_cobrar_sin_contabilizar}}` | — |
-| DTEs por pagar sin contabilizar | `{{dtes_por_pagar_sin_contabilizar}}` | — |
+Plantilla por defecto (sin datos de la semana anterior):
+
+| Métrica | Valor actual |
+|---|---|
+| % Avance total del checklist | `{{pct_avance}}%` |
+| Tareas completadas / pendientes | `{{tareas_ok}}` / `{{tareas_pendientes}}` |
+| Movimientos totales | `{{movimientos_totales}}` |
+| Movimientos sin match | `{{movimientos_sin_match}}` |
+| Match Cassius (cantidad) | `{{match_cassius_n}}` |
+| Match usuario (cantidad) | `{{match_usuario_n}}` |
+| Movimientos de tarjeta | `{{movimientos_tarjeta}}` |
+| TC/Medios de pago sin match | `{{tc_medios_pago_sin_match}}` |
+| Asientos contables totales | `{{asientos_contables_totales}}` |
+| Asientos por Cassius | `{{asientos_por_cassius}}` |
+| Asientos manuales | `{{asientos_manuales}}` |
+| DTEs por cobrar sin contabilizar | `{{dtes_por_cobrar_sin_contabilizar}}` |
+| DTEs por pagar sin contabilizar | `{{dtes_por_pagar_sin_contabilizar}}` |
+
+Si **sí** tenés los valores reales de la semana anterior, agregá una
+tercera columna `Semana anterior` con esos valores.
 
 Los 4 porcentajes destacados (% match Cassius, % match usuario, % asientos
 Cassius, % asientos manual) **no van en esta tabla** — van en el apartado
