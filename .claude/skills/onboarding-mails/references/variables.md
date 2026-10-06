@@ -8,7 +8,7 @@
 | `{{rut_empresa}}` | RUT — dashboard 607 (cards 6206/6207) o HubSpot |
 | `{{nombre_contacto}}` | Nombre del contacto principal — HubSpot contacts |
 | `{{email_contacto}}` / `{{email_contacto_principal}}` | Email del usuario — HubSpot contacts |
-| `{{createdate}}` | Fecha de creación del ticket — HubSpot ticket (usada para calcular la semana) |
+| `{{createdate}}` | Fecha de creación del ticket — HubSpot ticket (referencia; la semana sale de la tarea "Mandar mail de avance a las N semanas") |
 | `{{nombre_onboarder}}` | Propietario del ticket en HubSpot (cruzar contra `onboarder_asignado` del dashboard si hace falta confirmar) |
 | `{{calendly_onboarder}}` | Link Calendly del onboarder (lo indica el onboarder — ver decisión pendiente) |
 
@@ -85,7 +85,7 @@ renombres:
 | `{{pct_asientos_manual}}` | `% asientos manual` — mismo caso, viene directo |
 | `{{dtes_por_cobrar_sin_contabilizar}}` | `dtes_por_cobrar_sin_contabilizar` |
 | `{{dtes_por_pagar_sin_contabilizar}}` | `dtes_por_pagar_sin_contabilizar` |
-| `{{semana_onboarding}}` | `semana_onboarding` (referencia cruzada, no reemplaza el cálculo desde `createdate`) |
+| `{{semana_onboarding}}` | `semana_onboarding` (referencia cruzada, no reemplaza la semana de la tarea de HubSpot) |
 
 Las columnas viejas `pct_conciliacion_cassius_auto` y
 `pct_conciliacion_usuario` **ya no existen** — fueron reemplazadas por
