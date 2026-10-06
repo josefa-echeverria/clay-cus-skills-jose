@@ -191,8 +191,21 @@ Y una lista de **pendientes para el onboarder**:
 
 ## 7. Aviso en Slack
 
-Envía el resumen a **`#team-onboarding`** en cada corrida, haya o no
-clientes. Slack no muestra tablas en Markdown: usa una línea por cliente.
+Muestra siempre el resumen en el chat/log. El mensaje a
+**`#team-onboarding`** solo se envía en estos casos:
+
+1. **Había al menos una tarea de avance para hoy** (paso 1), sin importar
+   su resultado: borrador creado, ya existía, "No aplica" o error.
+2. **Falló la consulta a Metabase** (dashboard 607: `execute_card` no
+   responde, da error o timeout) al traer datos de un cliente que sí
+   correspondía hoy, aunque el borrador haya quedado incompleto o sin
+   generar.
+
+**Si no se da ninguno de los dos casos, no envíes nada a Slack:** el
+resumen en el chat/log basta. No avises que "hoy no correspondía", porque
+ese mensaje diario es ruido sin nada accionable.
+
+Slack no muestra tablas en Markdown: usa una línea por cliente.
 
 ```
 :memo: *Seguimiento de onboarding — {{onboarder}} — {{fecha}}*
@@ -205,8 +218,9 @@ clientes. Slack no muestra tablas en Markdown: usa una línea por cliente.
 (o "Sin pendientes 🎉")
 ```
 
-Si no había tareas de avance para hoy, manda igual:
-`Hoy no había mails de avance por generar para {{onboarder}}.`
+Si el envío lo dispara solo un error de Metabase (caso 2) y no había
+tareas de avance, usa el mismo formato con una línea que deje explícito el
+fallo: `• Error: falla de conexión a Metabase — {{detalle}}`.
 
 Si falla el envío a Slack, no reviertas borradores ni notas: reporta el
 fallo en el resumen que devuelves.
@@ -224,10 +238,9 @@ CRON_TZ=America/Santiago 0 10 * * 1-5
   quedan abiertas y se toman el lunes, porque el paso 1 incluye las
   vencidas.
 - **Feriados:** al partir, revisa si hoy es feriado nacional en Chile. Si lo
-  es, no proceses tareas ni crees notas o borradores: solo manda a
-  `#team-onboarding` el aviso
-  `Hoy es feriado: el seguimiento de onboarding se procesa el próximo día hábil.`
-  y termina. Las tareas se toman el siguiente día hábil.
+  es, no proceses tareas ni crees notas o borradores, no mandes nada a
+  Slack (mismo criterio del paso 7: sin nada accionable, sin aviso) y
+  termina. Las tareas se toman el siguiente día hábil.
 - **Filtro de 7 días:** se cuenta en días corridos, no hábiles (incluye
   fines de semana).
 - **Ejecución manual:** se puede correr a mano cualquier día y a cualquier
