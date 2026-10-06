@@ -15,7 +15,7 @@ edita y decide cuándo enviar — ver "Regla de oro" más abajo.
 | Mail | Cuándo | Referencia |
 |---|---|---|
 | 1 — Minuta de bienvenida | Dentro de 24 hs de la primera reunión | `references/mail1_bienvenida.md` |
-| 2, 3, 4 — Seguimiento semana 2/4/6 | `createdate` del ticket + 14/28/42 días, o a pedido | `references/mails_seguimiento.md` |
+| 2, 3, 4 — Seguimiento semana 2/4/6 | Tarea de HubSpot "Mandar mail de avance a las 2/4/6 semanas" (vía rutina `seguimiento-onboarding`), o a pedido | `references/mails_seguimiento.md` |
 
 ## Fuente de datos de avance: SOLO el dashboard de Metabase
 
@@ -81,12 +81,12 @@ confirma si de verdad quiere saltarse la revisión.
    el dashboard).
 2. **¿Es parte de un grupo?** Ver sección de arriba — revisalo antes de
    seguir, porque cambia si hace falta un bloque de resumen agregado.
-3. **Qué mail toca.** Si el usuario no lo dice explícitamente, calcúlalo desde
-   `createdate` (fecha de creación del ticket en HubSpot):
+3. **Qué mail toca.** Si el usuario no lo dice explícitamente, defínelo desde el
+   ticket de HubSpot:
    - Sin reunión de bienvenida registrada todavía → Mail 1.
-   - Reunión ya hecha → semana correspondiente según los días transcurridos
-     desde `createdate` (14/28/42 ± unos días de margen). Si cae justo
-     entre dos, pregunta cuál corresponde en vez de asumir.
+   - Reunión ya hecha → la semana de la tarea "Mandar mail de avance a las
+     N semanas" abierta en el ticket de HubSpot (2, 4 o 6). Si hay más de
+     una abierta o ninguna, pregunta cuál corresponde en vez de asumir.
 
 ## Paso 1 — Recolectar datos
 
