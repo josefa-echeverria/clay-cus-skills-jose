@@ -75,6 +75,39 @@ la de 2 semanas quedó sin cerrar y ya venció la de 4), trabaja **solo la de
 semana más alta** y menciona la otra en pendientes: el mail nuevo reemplaza
 al anterior.
 
+### 1.1 Respaldo: si no se pueden leer las tareas de HubSpot
+
+Algunos usuarios de HubSpot no tienen permiso para leer tareas por la
+conexión de Claude (error de permisos con `crm.objects.tasks.read` o
+`crm.schemas.tasks.read`). En ese caso **no te detengas**: cambia a modo
+respaldo y calcula la semana desde el ticket. No intentes volver a pedir el
+permiso ni cambiar configuraciones de HubSpot.
+
+1. Busca los tickets del pipeline de onboarding (búscalo por nombre, no
+   inventes el `pipeline_id`) del owner del paso 0, en etapas activas (no
+   *Cierre* ni *No completado*). Trae `createdate`, `hs_lastcontacted`,
+   `hs_pipeline_stage`, empresa y contacto principal.
+2. Calcula los días entre `createdate` y hoy (America/Santiago). Las tareas
+   del workflow vencen a 14, 28 y 42 días, así que la semana que
+   corresponde es el hito más alto ya alcanzado:
+   - 14 a 27 días → semana 2
+   - 28 a 41 días → semana 4
+   - 42 a 55 días → semana 6
+   - menos de 14 o 56 o más → no corresponde mail; ignora el ticket.
+3. **Antes de seguir, revisa Gmail** (borradores **y** enviados) buscando el
+   asunto `¿Cómo va {{nombre_empresa}} en Clay? — Semana {{n}}`. Si ya existe,
+   ese mail ya se preparó o se envió: repórtalo como `Ya existía` y no sigas
+   con ese cliente. Haz lo mismo si encuentras **cualquier** mail enviado con
+   asunto `¿Cómo va {{nombre_empresa}} en Clay?` en los últimos 7 días.
+4. Los que pasan siguen el flujo normal desde el paso 2 (filtro de contacto,
+   filtro de tareas pendientes, borrador).
+5. Si crear la nota en el ticket también falla por permisos, no te detengas:
+   anota el motivo en el resumen de Slack en lugar de la nota.
+
+En el resumen final y en el mensaje de Slack agrega, bajo el título, la
+línea `_Modo respaldo: sin acceso a tareas de HubSpot, semanas calculadas
+desde la fecha del ticket._`, para que el onboarder sepa que corrió así.
+
 ## 2. Filtro 1: ¿el cliente ya tuvo contacto esta semana?
 
 El mail de avance existe para retomar el contacto con clientes que no han
