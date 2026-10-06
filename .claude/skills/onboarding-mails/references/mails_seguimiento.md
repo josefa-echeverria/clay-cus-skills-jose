@@ -1,6 +1,7 @@
-# Mails 2 a 8 — Seguimiento Semana 2 a 8
+# Mails 2 a 4 — Seguimiento Semanas 2, 4 y 6
 
-Misma estructura base para las siete instancias; el contenido evoluciona con
+Misma estructura base para las tres instancias (semanas 2, 4 y 6, según el
+SOP "Seguimiento de Adopción en Onboarding"); el contenido evoluciona con
 el avance real del cliente. No copies el mail anterior — vuelve a consultar
 el dashboard cada vez, porque el objetivo es mostrar avance real, no repetir
 texto.
@@ -294,23 +295,22 @@ adopción. Sigue este formato:
 
 ## Trigger de envío (cómo se decide la semana)
 
-El número de semana lo calcula quien invoca esta skill (por ejemplo la
-rutina `seguimiento-onboarding` de Claude Code) a partir de `createdate` del
-ticket en HubSpot, usando esta correspondencia días→semana:
+Los mails de seguimiento se disparan por las tareas de HubSpot que crea el
+workflow "Creacion de tareas OB" al entrar el ticket a *Bienvenida y
+Configuración*:
 
-| Días transcurridos | Semana |
-|---|---|
-| 14 | 2 |
-| 21 | 3 |
-| 28 | 4 |
-| 35 | 5 |
-| 42 | 6 |
-| 49 | 7 |
-| 56 | 8 |
+| Tarea en HubSpot | Vence | Semana |
+|---|---|---|
+| Mandar mail de avance a las 2 semanas | +14 días | 2 |
+| Mandar mail de avance a las 4 semanas | +28 días | 4 |
+| Mandar mail de avance a las 6 semanas | +42 días | 6 |
 
-Si te piden generar un mail de seguimiento directo en el chat sin pasar por
-esa rutina, calculalo vos mismo con la misma lógica (día exacto, no rango), o
-usá la semana que el usuario te indique explícitamente.
+La rutina `seguimiento-onboarding` toma las tareas abiertas que vencen hoy o
+están vencidas, y descarta a los clientes con contacto en los últimos 7 días
+(`hs_lastcontacted` del ticket) o sin tareas pendientes en el checklist
+(ver pasos 2 y 3 de esa rutina). Si el mail se pide a mano para un cliente
+puntual, esos filtros no aplican: usa la semana que indique el usuario o la
+de la tarea abierta del ticket.
 
 Nota: la card 6206 también trae un campo `semana_onboarding` ya calculado
 por el dashboard — puede servir como referencia cruzada si el número que
